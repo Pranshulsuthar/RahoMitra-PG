@@ -35,14 +35,14 @@ interface FilterSelectProps {
 /** Compact labelled select used in admin toolbars. */
 export function FilterSelect({ label, value, onChange, options, className }: FilterSelectProps) {
   return (
-    <label className={cn('flex items-center gap-2', className)}>
+    <label className={cn('flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2', className)}>
       <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.1em] text-ink-mute">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="form-input w-auto min-w-[9rem] rounded-xl px-3 py-2.5 text-sm"
+        className="form-input w-full rounded-xl px-3 py-2.5 text-sm sm:w-auto sm:min-w-[9rem]"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

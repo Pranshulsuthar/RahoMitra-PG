@@ -80,7 +80,7 @@ export function DataTable<T>({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[46rem] border-collapse text-left">
+          <table className="w-full min-w-[34rem] border-collapse text-left lg:min-w-[46rem]">
             <thead>
               <tr className="border-b border-line bg-ivory/60">
                 {columns.map((col) => {

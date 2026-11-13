@@ -31,6 +31,16 @@ const STATUS_STYLES: Record<string, string> = {
   MEDIUM: 'bg-gold-soft text-gold-dark border-gold/40',
   HIGH: 'bg-danger-soft text-danger border-danger/30',
   URGENT: 'bg-danger text-white border-danger',
+  // owner dashboard (Section 04)
+  DRAFT: 'bg-ivory-deep/60 text-ink-soft border-line',
+  PAUSED: 'bg-danger-soft text-danger border-danger/30',
+  REVOKED: 'bg-danger-soft text-danger border-danger/30',
+  AVAILABLE: 'bg-forest-soft text-forest border-forest/25',
+  OCCUPIED: 'bg-ivory-deep/60 text-ink-soft border-line',
+  MAINTENANCE: 'bg-gold-soft text-gold-dark border-gold/40',
+  VACANT: 'bg-forest-soft text-forest border-forest/25',
+  PARTIAL: 'bg-gold-soft text-gold-dark border-gold/40',
+  FULL: 'bg-danger-soft text-danger border-danger/30',
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

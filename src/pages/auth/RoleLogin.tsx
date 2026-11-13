@@ -5,7 +5,7 @@ import { Info, Lock, GraduationCap, Building2, ShieldCheck, ArrowLeft, KeyRound 
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useForm } from '../../hooks/useForm'
 import { compose, minLength, required } from '../../utils/validation'
-import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD, isEmail, simulateLatency } from '../../utils/authDemo'
+import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD, DEMO_OWNER_EMAIL, DEMO_OWNER_PASSWORD, isEmail, simulateLatency } from '../../utils/authDemo'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { AuthCard } from '../../components/auth/AuthCard'
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -117,6 +117,21 @@ export function RoleLogin({ role }: { role: LoginRole }) {
       return
     }
 
+    if (role === 'owner') {
+      // Frontend-only credential comparison — no API, database or session.
+      const emailOk = form.values.email.trim().toLowerCase() === DEMO_OWNER_EMAIL
+      const passwordOk = form.values.password === DEMO_OWNER_PASSWORD
+      if (emailOk && passwordOk) {
+        setAuthError(null)
+        navigate('/owner/dashboard')
+      } else {
+        setAuthError(
+          'Invalid demo credentials. Use the DEMO MODE credentials shown below (frontend comparison only).',
+        )
+      }
+      return
+    }
+
     setDemoNotice(true)
   }
 
@@ -178,7 +193,7 @@ export function RoleLogin({ role }: { role: LoginRole }) {
                   </div>
                 )}
 
-                {role === 'admin' && (
+                {(role === 'admin' || role === 'owner') && (
                   <div className="mb-6 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3.5">
                     <p className="mb-2 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.18em] text-gold-dark">
                       <KeyRound className="h-3.5 w-3.5" aria-hidden />
@@ -188,13 +203,13 @@ export function RoleLogin({ role }: { role: LoginRole }) {
                       <li className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-ink">Email:</span>
                         <code className="rounded bg-white px-2 py-0.5 font-mono text-[12.5px] text-forest">
-                          {DEMO_ADMIN_EMAIL}
+                          {role === 'admin' ? DEMO_ADMIN_EMAIL : DEMO_OWNER_EMAIL}
                         </code>
                       </li>
                       <li className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-ink">Password:</span>
                         <code className="rounded bg-white px-2 py-0.5 font-mono text-[12.5px] text-forest">
-                          {DEMO_ADMIN_PASSWORD}
+                          {role === 'admin' ? DEMO_ADMIN_PASSWORD : DEMO_OWNER_PASSWORD}
                         </code>
                       </li>
                     </ul>

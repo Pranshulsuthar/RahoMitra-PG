@@ -32,6 +32,20 @@ import { Notifications } from './pages/admin/Notifications'
 import { Reports } from './pages/admin/Reports'
 import { AdminSettings } from './pages/admin/Settings'
 
+// Section 04 — PG Owner dashboard
+import { OwnerLayout } from './components/owner/OwnerLayout'
+import { OwnerDashboard } from './pages/owner/OwnerDashboard'
+import { Properties } from './pages/owner/Properties'
+import { PropertyDetail } from './pages/owner/PropertyDetail'
+import { PropertyEdit } from './pages/owner/PropertyEdit'
+import { Rooms } from './pages/owner/Rooms'
+import { Students } from './pages/owner/Students'
+import { Admissions } from './pages/owner/Admissions'
+import { Staff } from './pages/owner/Staff'
+import { Availability } from './pages/owner/Availability'
+import { OwnerProfile } from './pages/owner/OwnerProfile'
+import { OwnerSettings } from './pages/owner/OwnerSettings'
+
 export default function App() {
   return (
     <Routes>
@@ -60,6 +74,23 @@ export default function App() {
       <Route path="/login/admin" element={<RoleLogin role="admin" />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* -------------------------------------- Section 04: PG Owner console */}
+      <Route path="/owner" element={<OwnerLayout />}>
+        <Route index element={<Navigate to="/owner/dashboard" replace />} />
+        <Route path="dashboard" element={<OwnerDashboard />} />
+        <Route path="properties" element={<Properties />} />
+        <Route path="properties/:id" element={<PropertyDetail />} />
+        <Route path="properties/:id/edit" element={<PropertyEdit />} />
+        <Route path="rooms" element={<Rooms />} />
+        <Route path="students" element={<Students />} />
+        <Route path="admissions" element={<Admissions />} />
+        <Route path="staff" element={<Staff />} />
+        <Route path="availability" element={<Availability />} />
+        <Route path="profile" element={<OwnerProfile />} />
+        <Route path="settings" element={<OwnerSettings />} />
+        <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
+      </Route>
 
       {/* ------------------------------------- Section 03: Super Admin panel */}
       <Route path="/admin" element={<AdminLayout />}>

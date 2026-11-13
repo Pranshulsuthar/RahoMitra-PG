@@ -15,6 +15,9 @@ interface BarChartProps {
   height?: number
   color?: string
   valuePrefix?: string
+  valueSuffix?: string
+  /** Fixed axis maximum (e.g. 100 for percentages). Defaults to the data max. */
+  maxValue?: number
   ariaLabel: string
 }
 
@@ -24,17 +27,21 @@ export function BarChart({
   height = 220,
   color = FOREST,
   valuePrefix = '',
+  valueSuffix = '',
+  maxValue,
   ariaLabel,
 }: BarChartProps) {
   const gradientId = useId()
-  const max = Math.max(...data.map((d) => d.value), 1)
+  const dataMax = Math.max(...data.map((d) => d.value), 1)
+  const max = maxValue && maxValue > 0 ? maxValue : dataMax
   const width = 640
   const padX = 34
   const padTop = 22
   const padBottom = 30
   const chartH = height - padTop - padBottom
   const slot = (width - padX * 2) / data.length
-  const barW = Math.min(46, slot * 0.55)
+  const maxBarW = data.length <= 2 ? 88 : 46
+  const barW = Math.min(maxBarW, Math.max(slot * 0.55, 26))
 
   return (
     <svg
@@ -49,7 +56,9 @@ export function BarChart({
           <g key={tick}>
             <line x1={padX} x2={width - padX} y1={y} y2={y} stroke={AXIS} strokeDasharray="3 5" />
             <text x={padX - 8} y={y + 3.5} textAnchor="end" fontSize="10" fill={LABEL}>
+              {valuePrefix}
               {Math.round(max * tick)}
+              {valueSuffix}
             </text>
           </g>
         )
@@ -74,7 +83,7 @@ export function BarChart({
               rx={7}
               fill={`url(#${gradientId})`}
             >
-              <title>{`${d.label}: ${valuePrefix}${d.value}`}</title>
+              <title>{`${d.label}: ${valuePrefix}${d.value}${valueSuffix}`}</title>
             </rect>
             <text
               x={x + barW / 2}
@@ -86,6 +95,7 @@ export function BarChart({
             >
               {valuePrefix}
               {d.value}
+              {valueSuffix}
             </text>
             <text x={x + barW / 2} y={height - 9} textAnchor="middle" fontSize="11" fill={LABEL}>
               {d.label}
@@ -187,7 +197,7 @@ export function DonutChart({ data, size = 170, centerLabel, ariaLabel }: DonutCh
   let offset = 0
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-7">
+    <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
       <svg
         width={size}
         height={size}
@@ -227,9 +237,9 @@ export function DonutChart({ data, size = 170, centerLabel, ariaLabel }: DonutCh
           {centerLabel ?? 'TOTAL'}
         </text>
       </svg>
-      <ul className="space-y-2.5">
+      <ul className="min-w-0 space-y-2.5">
         {data.map((d) => (
-          <li key={d.label} className="flex items-center gap-2.5 text-sm text-ink-soft">
+          <li key={d.label} className="flex items-center gap-2.5 whitespace-nowrap text-sm text-ink-soft">
             <span
               className="h-3 w-3 shrink-0 rounded-[4px]"
               style={{ backgroundColor: d.color }}
