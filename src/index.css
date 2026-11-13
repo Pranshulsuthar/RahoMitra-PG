@@ -1,0 +1,433 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------
+   RahoMitra design system
+   Forest Green #173D32 · Ivory #F5F1E7 · Gold #C49A52 · Dark #252A27
+---------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+
+  --color-forest: #173d32;
+  --color-forest-light: #1f5143;
+  --color-forest-dark: #0f2b23;
+  --color-forest-soft: #e8efec;
+
+  --color-ivory: #f5f1e7;
+  --color-ivory-dark: #eae4d4;
+  --color-ivory-deep: #ddd5c0;
+
+  --color-gold: #c49a52;
+  --color-gold-dark: #a8823f;
+  --color-gold-soft: #f0e4cd;
+
+  --color-ink: #252a27;
+  --color-ink-soft: #565e58;
+  --color-ink-mute: #8b928d;
+
+  --color-line: #e5e0d2;
+  --color-danger: #b3402f;
+  --color-danger-soft: #fbeeeb;
+
+  --shadow-card: 0 1px 2px rgba(23, 61, 50, 0.05), 0 14px 32px -20px rgba(23, 61, 50, 0.35);
+  --shadow-card-hover: 0 2px 4px rgba(23, 61, 50, 0.06), 0 26px 46px -24px rgba(23, 61, 50, 0.45);
+  --shadow-pop: 0 8px 30px -12px rgba(23, 61, 50, 0.28);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: var(--color-gold-soft);
+    color: var(--color-forest);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+}
+
+/* Shared layout + form styles live in the components layer so Tailwind
+   utilities (pl-10, bg-ivory/70, py-2.5 …) can still override them. */
+@layer components {
+  .page-container {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-ink);
+    margin-bottom: 0.375rem;
+  }
+
+  .form-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-line);
+    background-color: #ffffff;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.925rem;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .form-input::placeholder {
+    color: #9aa19c;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(196, 154, 82, 0.18);
+  }
+
+  .form-input[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+
+  .form-input[aria-invalid='true']:focus {
+    box-shadow: 0 0 0 3px rgba(179, 64, 47, 0.14);
+  }
+
+  .form-error {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--color-danger);
+  }
+
+  .rule-line {
+    height: 1px;
+    background-color: var(--color-line);
+  }
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding-inline: 2rem;
+  }
+}
+
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23565E58' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  padding-right: 2.4rem;
+}
+
+/* ---------------------------------------------------------------
+   Page-load intro: logo zoom that dissolves into the homepage
+---------------------------------------------------------------- */
+@keyframes intro-splash {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.7);
+    visibility: hidden;
+  }
+}
+
+.intro-splash {
+  animation: intro-splash 1.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes intro-logo {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intro-logo {
+  animation: intro-logo 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes intro-wordmark {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intro-wordmark {
+  animation: intro-wordmark 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+}
+
+/* Staggered content reveal */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-splash {
+    display: none;
+  }
+  .intro-logo,
+  .intro-wordmark,
+  .reveal {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Section 02 — authentication motion system
+---------------------------------------------------------------- */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    /* `none` (not translateY(0)) so no lingering transform remains after the
+       animation — a non-none transform would make descendants with
+       position:fixed (modals, overlays) anchor to <main> instead of the viewport. */
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-in-left {
+  animation: slide-in-left 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-scale-in {
+  animation: fade-scale-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ring-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ring-pop {
+  animation: ring-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.check-draw {
+  stroke-dasharray: 64;
+  stroke-dashoffset: 64;
+  animation: check-draw 0.55s 0.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes icon-swap {
+  from {
+    opacity: 0;
+    transform: rotate(-50deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+.icon-swap {
+  animation: icon-swap 0.25s ease-out both;
+}
+
+@keyframes gentle-shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(3px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+.gentle-shake {
+  animation: gentle-shake 0.4s ease-in-out;
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.soft-pulse {
+  animation: soft-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes step-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.step-grow {
+  transform-origin: left;
+  animation: step-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .slide-in-right,
+  .slide-in-left,
+  .fade-scale-in,
+  .ring-pop,
+  .icon-swap,
+  .gentle-shake,
+  .soft-pulse,
+  .step-grow {
+    animation: none !important;
+  }
+  .check-draw {
+    stroke-dashoffset: 0;
+    animation: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Scrollbar utilities — keep scrolling, hide the native bar
+   (used by the admin sidebar nav and other slim panels)
+--------------------------------------------------------------- */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

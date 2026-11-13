@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="560" viewBox="0 0 800 560" role="img" aria-label="RahoMitra demo image placeholder">
+  <rect width="800" height="560" fill="#173D32"/>
+  <rect x="24" y="24" width="752" height="512" rx="18" fill="none" stroke="#C49A52" stroke-width="2" stroke-dasharray="10 8" opacity="0.7"/>
+  <g transform="translate(400 240)" fill="none" stroke="#C49A52" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-70 10 L0 -55 L70 10"/>
+    <path d="M-50 8 v70 h100 v-70"/>
+    <rect x="-26" y="34" width="52" height="44" rx="4"/>
+  </g>
+  <text x="400" y="392" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#F5F1E7">RahoMitra</text>
+  <text x="400" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#C49A52">Demo property image</text>
+</svg>
