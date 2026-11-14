@@ -46,6 +46,13 @@ const STATUS_STYLES: Record<string, string> = {
   UNPAID: 'bg-danger-soft text-danger border-danger/30',
   PARTIALLY_PAID: 'bg-gold-soft text-gold-dark border-gold/40',
   OVERDUE: 'bg-danger text-white border-danger',
+  // complaints (Section 07)
+  SUBMITTED: 'bg-ivory text-ink-soft border-line',
+  UNDER_REVIEW: 'bg-gold-soft text-gold-dark border-gold/40',
+  // announcement lifecycle (Section 07)
+  PUBLISHED: 'bg-forest-soft text-forest border-forest/25',
+  NORMAL: 'bg-ivory-deep/60 text-ink-soft border-line',
+  IMPORTANT: 'bg-gold-soft text-gold-dark border-gold/40',
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

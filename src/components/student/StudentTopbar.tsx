@@ -11,14 +11,20 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useStudentStore } from '../../context/StudentStore'
+import { useCommunicationStore } from '../../context/CommunicationStore'
+import { DEMO_STUDENT_ID } from '../../data/communicationData'
 import { cn } from '../../utils/cn'
 import { ConfirmDialog } from '../admin/ConfirmDialog'
+import type { StudentNotice } from '../../types/student'
+import type { CommNotification } from '../../types/communication'
 
 const TITLES: Array<[string, string, string]> = [
   ['/student/dashboard', 'Student Dashboard', 'Your PG life at a glance'],
   ['/student/accommodation', 'My Accommodation', 'Your current PG details'],
   ['/student/room', 'My Room', 'Room, bed and occupancy'],
   ['/student/notices', 'Notices', 'PG notice board'],
+  ['/student/messages', 'Messages', 'Private chat with your PG owner'],
+  ['/student/complaints', 'My Complaints', 'Raise and track PG complaints'],
   ['/student/billing', 'My Bills', 'Invoices and payment history'],
   ['/student/profile', 'My Profile', 'Your account details'],
   ['/student/support', 'Help & Support', 'FAQs and contact information'],
@@ -35,8 +41,16 @@ interface StudentTopbarProps {
 export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: StudentTopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { profile, notices, unreadCount, markNoticeRead, markAllNoticesRead, pushToast } =
+  const { profile, notices, unreadCount, markNoticeRead, markAllNoticesRead, removeNotice, pushToast } =
     useStudentStore()
+  const {
+    roleNotifications,
+    markNotificationRead: markCommRead,
+    markAllNotificationsRead: markAllCommRead,
+    clearNotification,
+    announcements,
+    markAnnouncementRead,
+  } = useCommunicationStore()
 
   const [bellOpen, setBellOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -58,6 +72,73 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
   const closeAll = () => {
     setBellOpen(false)
     setProfileOpen(false)
+  }
+
+  /* Section 07 — unified bell: classic notices + Section 07 notifications
+     (messages, complaints, responses, announcements). */
+  const commNotes = roleNotifications('STUDENT', DEMO_STUDENT_ID)
+
+  const bellRows = useMemo(() => {
+    type Row = {
+      id: string
+      source: 'NOTICE' | 'COMM'
+      title: string
+      body: string
+      date: string
+      read: boolean
+      to: string
+    }
+    const noticeRows: Row[] = notices.map((n: StudentNotice) => ({
+      id: n.id,
+      source: 'NOTICE',
+      title: n.title,
+      body: n.description,
+      date: n.date,
+      read: n.read,
+      to: '/student/notices',
+    }))
+    const commRows: Row[] = commNotes.map((n: CommNotification) => ({
+      id: n.id,
+      source: 'COMM',
+      title: n.title,
+      body: n.body,
+      date: `${n.date} ${n.at}`,
+      read: n.read,
+      to: n.to,
+    }))
+    return [...noticeRows, ...commRows]
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+      .slice(0, 7)
+  }, [notices, commNotes])
+
+  const bellUnread = unreadCount + commNotes.filter((n) => !n.read).length
+
+  const openRow = (row: { id: string; source: string; to: string }) => {
+    if (row.source === 'COMM') markCommRead(row.id)
+    else markNoticeRead(row.id)
+    setBellOpen(false)
+    navigate(row.to)
+  }
+
+  const dismissRow = (row: { id: string; source: string }) => {
+    if (row.source === 'COMM') clearNotification(row.id)
+    else removeNotice(row.id)
+    pushToast('Notification cleared (demo).', 'info')
+  }
+
+  const markAllBell = () => {
+    markAllNoticesRead()
+    markAllCommRead('STUDENT', DEMO_STUDENT_ID)
+    announcements
+      .filter(
+        (a) =>
+          a.published &&
+          a.propertyId === 'pg-001' &&
+          (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
+          !a.readBy.includes(DEMO_STUDENT_ID),
+      )
+      .forEach((a) => markAnnouncementRead(a.id, DEMO_STUDENT_ID))
+    pushToast('All demo notifications marked as read.', 'info')
   }
 
   return (
@@ -111,7 +192,7 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
         <div className="relative">
           <button
             type="button"
-            aria-label={`Notices (${unreadCount} unread)`}
+            aria-label={`Notifications (${bellUnread} unread)`}
             onClick={() => {
               setBellOpen((v) => !v)
               setProfileOpen(false)
@@ -119,9 +200,9 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
             className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-line text-forest transition-colors hover:bg-ivory"
           >
             <Bell className="h-4.5 w-4.5" aria-hidden />
-            {unreadCount > 0 && (
+            {bellUnread > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
-                {unreadCount}
+                {bellUnread}
               </span>
             )}
           </button>
@@ -129,47 +210,62 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
             <div className="fade-scale-in absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-pop">
               <div className="flex items-center justify-between border-b border-line bg-ivory/60 px-4 py-3">
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
-                  Recent notices
+                  Notifications
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    markAllNoticesRead()
-                    pushToast('All demo notices marked as read.', 'info')
-                  }}
+                  onClick={markAllBell}
                   className="text-[11px] font-semibold text-forest hover:text-gold-dark"
                 >
                   Mark all read
                 </button>
               </div>
-              <ul className="max-h-72 overflow-y-auto">
-                {notices.slice(0, 5).map((n) => (
-                  <li key={n.id} className="border-b border-line/70 last:border-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        markNoticeRead(n.id)
-                        setBellOpen(false)
-                        navigate('/student/notices')
-                      }}
-                      className="flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-ivory/70"
-                    >
-                      <span
-                        className={cn(
-                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                          n.read ? 'bg-line' : 'bg-gold',
-                        )}
-                        aria-hidden
-                      />
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-semibold text-ink">
-                          {n.title}
+              <ul className="max-h-80 overflow-y-auto">
+                {bellRows.length === 0 && (
+                  <li className="px-4 py-6 text-center text-[12.5px] text-ink-mute">
+                    You're all caught up — no demo notifications.
+                  </li>
+                )}
+                {bellRows.map((n) => (
+                  <li
+                    key={`${n.source}-${n.id}`}
+                    className="group border-b border-line/70 last:border-0"
+                  >
+                    <div className="flex items-start gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openRow(n)}
+                        className="flex min-w-0 flex-1 gap-3 px-4 py-3 text-left transition-colors hover:bg-ivory/70"
+                        aria-label={`Open notification: ${n.title}`}
+                      >
+                        <span
+                          className={cn(
+                            'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                            n.read ? 'bg-line' : 'bg-gold',
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13px] font-semibold text-ink">
+                            {n.title}
+                          </span>
+                          <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
+                            {n.body}
+                          </span>
+                          <span className="mt-1 block text-[10px] font-bold uppercase tracking-wider text-ink-mute/80">
+                            {n.date} · demo
+                          </span>
                         </span>
-                        <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
-                          {n.description}
-                        </span>
-                      </span>
-                    </button>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => dismissRow(n)}
+                        aria-label={`Clear notification: ${n.title}`}
+                        className="mt-2 shrink-0 rounded-full p-1 text-ink-mute opacity-0 transition hover:bg-danger-soft hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

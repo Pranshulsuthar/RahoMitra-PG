@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { StudentStoreProvider, useStudentStore } from '../../context/StudentStore'
+import { useCommunicationStore } from '../../context/CommunicationStore'
+import { DEMO_STUDENT_ID } from '../../data/communicationData'
 import { StudentSidebar } from './StudentSidebar'
 import { StudentTopbar } from './StudentTopbar'
 import { ToastStack } from '../common/ToastStack'
@@ -19,6 +21,21 @@ function StudentToastViewport() {
 function StudentShell() {
   const { pathname } = useLocation()
   const { unreadCount } = useStudentStore()
+  const { conversations, announcements } = useCommunicationStore()
+
+  /* Section 07 — unread counts across notices + announcements + messages. */
+  const myAnnouncementUnread = announcements.filter(
+    (a) =>
+      a.published &&
+      a.propertyId === 'pg-001' &&
+      (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
+      (a.expiresOn === '' || a.expiresOn >= '2026-05-14') &&
+      !a.readBy.includes(DEMO_STUDENT_ID),
+  ).length
+  const combinedUnread = unreadCount + myAnnouncementUnread
+  const unreadMessages =
+    conversations.find((c) => c.studentId === DEMO_STUDENT_ID)?.studentUnread ?? 0
+
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -29,7 +46,8 @@ function StudentShell() {
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
         onToggleCollapse={() => setCollapsed((v) => !v)}
-        unreadNotices={unreadCount}
+        unreadNotices={combinedUnread}
+        unreadMessages={unreadMessages}
       />
       <div
         className="flex min-h-screen flex-col transition-[padding] duration-300 ease-out lg:pl-[var(--sidebar-pad)]"

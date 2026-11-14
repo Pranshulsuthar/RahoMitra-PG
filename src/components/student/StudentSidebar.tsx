@@ -3,10 +3,12 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BedDouble,
   Building2,
+  Inbox,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
   Megaphone,
+  MessageSquare,
   Receipt,
   Settings,
   UserRound,
@@ -31,6 +33,13 @@ const NAV_SECTIONS: Array<{
     ],
   },
   {
+    label: 'Communication',
+    items: [
+      { to: '/student/messages', label: 'Messages', icon: MessageSquare },
+      { to: '/student/complaints', label: 'My Complaints', icon: Inbox },
+    ],
+  },
+  {
     label: 'Account',
     items: [
       { to: '/student/profile', label: 'My Profile', icon: UserRound },
@@ -47,6 +56,8 @@ interface StudentSidebarProps {
   onCloseMobile: () => void
   onToggleCollapse: () => void
   unreadNotices: number
+  /** Section 07 — unread messages waiting in the student's private thread. */
+  unreadMessages?: number
 }
 
 /** Fixed navigation rail for the student portal — collapsible + mobile drawer. */
@@ -56,6 +67,7 @@ export function StudentSidebar({
   onCloseMobile,
   onToggleCollapse,
   unreadNotices,
+  unreadMessages = 0,
 }: StudentSidebarProps) {
   const navigate = useNavigate()
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -146,16 +158,17 @@ export function StudentSidebar({
                             )}
                             aria-hidden
                           />
-                          {item.to === '/student/notices' && unreadNotices > 0 && (
+                          {(item.to === '/student/notices' && unreadNotices > 0) ||
+                          (item.to === '/student/messages' && unreadMessages > 0) ? (
                             <span
                               className={cn(
                                 'absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-forest-dark',
                                 collapsed && 'lg:-right-2',
                               )}
                             >
-                              {unreadNotices}
+                              {item.to === '/student/notices' ? unreadNotices : unreadMessages}
                             </span>
-                          )}
+                          ) : null}
                         </span>
                         <span className={cn('truncate', collapsed && 'lg:hidden')}>
                           {item.label}

@@ -1,58 +1,106 @@
 import { useMemo, useState } from 'react'
-import { CheckCheck, Megaphone, Mail, Wrench, Zap, Droplets, AlertTriangle, BookOpen } from 'lucide-react'
+import {
+  AlertTriangle,
+  Bell,
+  BookOpen,
+  CheckCheck,
+  Droplets,
+  Eye,
+  Flame,
+  Mail,
+  Megaphone,
+  Receipt,
+  ShieldCheck,
+  UtensilsCrossed,
+  Wrench,
+  X,
+  Zap,
+} from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useStudentStore } from '../../context/StudentStore'
+import { useCommunicationStore } from '../../context/CommunicationStore'
 import { NOTICE_CATEGORY_LABELS } from '../../types/student'
 import type { NoticeCategory } from '../../types/student'
+import { ANNOUNCEMENT_CATEGORY_LABELS, fmtDate } from '../../types/communication'
+import type { Announcement, AnnouncementCategory } from '../../types/communication'
+import { COMM_TODAY, DEMO_STUDENT_ID, commPropertyName } from '../../data/communicationData'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { DemoBanner } from '../../components/admin/DemoBanner'
+import { Modal } from '../../components/admin/Modal'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
+import { StatusBadge } from '../../components/admin/StatusBadge'
 import { EmptyState } from '../../components/common/EmptyState'
 import { Button } from '../../components/common/Button'
 import { cn } from '../../utils/cn'
 
-const CATEGORY_META: Record<
+const MY_PROPERTY_ID = 'pg-001'
+
+/* ------------------------------------------------------- icon / colour maps */
+
+const NOTICE_META: Record<
   NoticeCategory,
   { icon: typeof Megaphone; classes: string; badge: string }
 > = {
-  GENERAL: {
-    icon: BookOpen,
-    classes: 'bg-ivory text-ink-soft',
-    badge: 'bg-ivory-deep/60 text-ink-soft border-line',
-  },
-  MAINTENANCE: {
-    icon: Wrench,
-    classes: 'bg-gold-soft text-gold-dark',
-    badge: 'bg-gold-soft text-gold-dark border-gold/40',
-  },
-  FOOD: {
-    icon: Mail,
-    classes: 'bg-forest-soft text-forest',
-    badge: 'bg-forest-soft text-forest border-forest/25',
-  },
-  ELECTRICITY: {
-    icon: Zap,
-    classes: 'bg-gold-soft text-gold-dark',
-    badge: 'bg-gold-soft text-gold-dark border-gold/40',
-  },
-  WATER: {
-    icon: Droplets,
-    classes: 'bg-forest-soft text-forest',
-    badge: 'bg-forest-soft text-forest border-forest/25',
-  },
-  IMPORTANT: {
-    icon: AlertTriangle,
-    classes: 'bg-danger-soft text-danger',
-    badge: 'bg-danger-soft text-danger border-danger/30',
-  },
+  GENERAL: { icon: BookOpen, classes: 'bg-ivory text-ink-soft', badge: 'bg-ivory-deep/60 text-ink-soft border-line' },
+  MAINTENANCE: { icon: Wrench, classes: 'bg-gold-soft text-gold-dark', badge: 'bg-gold-soft text-gold-dark border-gold/40' },
+  FOOD: { icon: Mail, classes: 'bg-forest-soft text-forest', badge: 'bg-forest-soft text-forest border-forest/25' },
+  ELECTRICITY: { icon: Zap, classes: 'bg-gold-soft text-gold-dark', badge: 'bg-gold-soft text-gold-dark border-gold/40' },
+  WATER: { icon: Droplets, classes: 'bg-forest-soft text-forest', badge: 'bg-forest-soft text-forest border-forest/25' },
+  IMPORTANT: { icon: AlertTriangle, classes: 'bg-danger-soft text-danger', badge: 'bg-danger-soft text-danger border-danger/30' },
 }
+
+const ANNOUNCEMENT_META: Record<
+  AnnouncementCategory,
+  { icon: typeof Megaphone; classes: string; badge: string }
+> = {
+  GENERAL: { icon: Bell, classes: 'bg-ivory text-ink-soft', badge: 'bg-ivory-deep/60 text-ink-soft border-line' },
+  MAINTENANCE: { icon: Wrench, classes: 'bg-gold-soft text-gold-dark', badge: 'bg-gold-soft text-gold-dark border-gold/40' },
+  ELECTRICITY_WATER: { icon: Zap, classes: 'bg-gold-soft text-gold-dark', badge: 'bg-gold-soft text-gold-dark border-gold/40' },
+  FOOD_MESS: { icon: UtensilsCrossed, classes: 'bg-forest-soft text-forest', badge: 'bg-forest-soft text-forest border-forest/25' },
+  RENT_REMINDER: { icon: Receipt, classes: 'bg-danger-soft text-danger', badge: 'bg-danger-soft text-danger border-danger/30' },
+  RULES: { icon: ShieldCheck, classes: 'bg-ivory text-ink-soft', badge: 'bg-ivory-deep/60 text-ink-soft border-line' },
+  EMERGENCY: { icon: Flame, classes: 'bg-danger-soft text-danger', badge: 'bg-danger-soft text-danger border-danger/30' },
+}
+
+/* ------------------------------------------------------------ unified items */
+
+type BoardItem =
+  | {
+      kind: 'NOTICE'
+      id: string
+      title: string
+      description: string
+      date: string
+      category: string
+      read: boolean
+      meta: { icon: typeof Megaphone; classes: string; badge: string }
+      label: string
+    }
+  | {
+      kind: 'ANNOUNCEMENT'
+      id: string
+      title: string
+      description: string
+      date: string
+      category: string
+      read: boolean
+      meta: { icon: typeof Megaphone; classes: string; badge: string }
+      label: string
+      priority: Announcement['priority']
+      expiresOn: string
+      full: Announcement
+    }
 
 const CATEGORY_OPTIONS = [
   { value: 'ALL', label: 'All categories' },
-  ...((Object.keys(NOTICE_CATEGORY_LABELS) as NoticeCategory[]).map((key) => ({
-    value: key,
+  ...(Object.keys(NOTICE_CATEGORY_LABELS) as NoticeCategory[]).map((key) => ({
+    value: `N:${key}`,
     label: NOTICE_CATEGORY_LABELS[key],
-  })) as Array<{ value: string; label: string }>),
+  })),
+  ...(Object.keys(ANNOUNCEMENT_CATEGORY_LABELS) as AnnouncementCategory[]).map((key) => ({
+    value: `A:${key}`,
+    label: ANNOUNCEMENT_CATEGORY_LABELS[key],
+  })),
 ]
 
 const READ_OPTIONS = [
@@ -61,46 +109,107 @@ const READ_OPTIONS = [
   { value: 'READ', label: 'Read only' },
 ]
 
-/** /student/notices — searchable, filterable local demo notice board. */
+/**
+ * /student/notices — the student's notice board. It unions the original
+ * StudentStore notices with Section 07 owner announcements that are relevant
+ * to the student's own PG (published, not expired, audience includes them).
+ * Another PG's announcements are never rendered here.
+ */
 export function Notices() {
   useDocumentTitle('Notices')
 
-  const { notices, unreadCount, markNoticeRead, markAllNoticesRead, pushToast } = useStudentStore()
+  const { notices, markNoticeRead, markAllNoticesRead, pushToast } = useStudentStore()
+  const { announcements, markAnnouncementRead, markAllNotificationsRead } =
+    useCommunicationStore()
 
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('ALL')
   const [readFilter, setReadFilter] = useState('ALL')
+  const [detail, setDetail] = useState<BoardItem | null>(null)
+
+  /* announcements visible to THIS student only */
+  const myAnnouncements = useMemo(
+    () =>
+      announcements.filter(
+        (a) =>
+          a.published &&
+          a.propertyId === MY_PROPERTY_ID &&
+          (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
+          (a.expiresOn === '' || a.expiresOn >= COMM_TODAY),
+      ),
+    [announcements],
+  )
+
+  const items = useMemo<BoardItem[]>(() => {
+    const noticeItems: BoardItem[] = notices.map((n) => ({
+      kind: 'NOTICE',
+      id: n.id,
+      title: n.title,
+      description: n.description,
+      date: n.date,
+      category: `N:${n.category}`,
+      read: n.read,
+      meta: NOTICE_META[n.category],
+      label: NOTICE_CATEGORY_LABELS[n.category],
+    }))
+
+    const announcementItems: BoardItem[] = myAnnouncements.map((a) => ({
+      kind: 'ANNOUNCEMENT',
+      id: a.id,
+      title: a.title,
+      description: a.message,
+      date: a.publishedOn,
+      category: `A:${a.category}`,
+      read: a.readBy.includes(DEMO_STUDENT_ID),
+      meta: ANNOUNCEMENT_META[a.category],
+      label: ANNOUNCEMENT_CATEGORY_LABELS[a.category],
+      priority: a.priority,
+      expiresOn: a.expiresOn,
+      full: a,
+    }))
+
+    return [...noticeItems, ...announcementItems].sort((a, b) =>
+      a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
+    )
+  }, [notices, myAnnouncements])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return notices.filter((notice) => {
-      if (category !== 'ALL' && notice.category !== category) return false
-      if (readFilter === 'READ' && !notice.read) return false
-      if (readFilter === 'UNREAD' && notice.read) return false
+    return items.filter((item) => {
+      if (category !== 'ALL' && item.category !== category) return false
+      if (readFilter === 'READ' && !item.read) return false
+      if (readFilter === 'UNREAD' && item.read) return false
       if (q.length > 0) {
-        const haystack = `${notice.title} ${notice.description} ${notice.category}`.toLowerCase()
+        const haystack = `${item.title} ${item.description} ${item.label}`.toLowerCase()
         if (!haystack.includes(q)) return false
       }
       return true
     })
-  }, [notices, query, category, readFilter])
+  }, [items, query, category, readFilter])
 
+  const unreadCount = items.filter((i) => !i.read).length
   const hasFilters = query.trim().length > 0 || category !== 'ALL' || readFilter !== 'ALL'
+
+  const markRead = (item: BoardItem, read: boolean) => {
+    if (item.kind === 'NOTICE') markNoticeRead(item.id, read)
+    else markAnnouncementRead(item.id, DEMO_STUDENT_ID)
+    if (read) pushToast('Notice marked as read (demo).', 'info')
+  }
+
+  const markAll = () => {
+    markAllNoticesRead()
+    myAnnouncements.forEach((a) => markAnnouncementRead(a.id, DEMO_STUDENT_ID))
+    markAllNotificationsRead('STUDENT', DEMO_STUDENT_ID)
+    pushToast('All demo notices marked as read.', 'info')
+  }
 
   return (
     <>
       <AdminPageHeader
         title="Notices"
-        description="Your PG notice board — search, filter by category and mark demo notices as read."
+        description="Your PG notice board — owner announcements for your PG plus classic notices, searchable and filterable (demo)."
         actions={
-          <Button
-            variant="outline"
-            onClick={() => {
-              markAllNoticesRead()
-              pushToast('All demo notices marked as read.', 'info')
-            }}
-            disabled={unreadCount === 0}
-          >
+          <Button variant="outline" onClick={markAll} disabled={unreadCount === 0}>
             <CheckCheck className="h-4 w-4" aria-hidden />
             Mark all read
           </Button>
@@ -168,15 +277,14 @@ export function Notices() {
         />
       ) : (
         <ul className="space-y-3.5">
-          {filtered.map((notice) => {
-            const meta = CATEGORY_META[notice.category]
-            const Icon = meta.icon
+          {filtered.map((item) => {
+            const Icon = item.meta.icon
             return (
               <li
-                key={notice.id}
+                key={`${item.kind}-${item.id}`}
                 className={cn(
                   'rounded-3xl border bg-white p-5 shadow-card transition-all',
-                  notice.read ? 'border-line opacity-80' : 'border-gold/50 shadow-card-hover',
+                  item.read ? 'border-line opacity-80' : 'border-gold/50 shadow-card-hover',
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -184,58 +292,71 @@ export function Notices() {
                     <span
                       className={cn(
                         'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                        meta.classes,
+                        item.meta.classes,
                       )}
                     >
                       <Icon className="h-4.5 w-4.5" aria-hidden />
                     </span>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <h2 className="text-[15px] font-bold text-ink">{notice.title}</h2>
-                        {!notice.read && (
+                        <h2 className="text-[15px] font-bold text-ink">{item.title}</h2>
+                        {!item.read && (
                           <span className="flex items-center gap-1.5 rounded-full bg-gold px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-forest-dark">
                             <span className="h-1.5 w-1.5 rounded-full bg-forest-dark" aria-hidden />
                             Unread
                           </span>
+                        )}
+                        {item.kind === 'ANNOUNCEMENT' && (
+                          <StatusBadge status={item.priority} />
                         )}
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11.5px] text-ink-mute">
                         <span
                           className={cn(
                             'inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]',
-                            meta.badge,
+                            item.meta.badge,
                           )}
                         >
-                          {NOTICE_CATEGORY_LABELS[notice.category]}
+                          {item.label}
                         </span>
-                        <span>Posted {notice.date}</span>
+                        <span>
+                          {item.kind === 'ANNOUNCEMENT' ? 'Published' : 'Posted'} {fmtDate(item.date)}
+                        </span>
                         <span aria-hidden>·</span>
-                        <span>{notice.read ? 'Read' : 'Unread'}</span>
+                        <span>{item.read ? 'Read' : 'Unread'}</span>
+                        {item.kind === 'ANNOUNCEMENT' && item.expiresOn && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>Expires {fmtDate(item.expiresOn)}</span>
+                          </>
+                        )}
+                        {item.kind === 'ANNOUNCEMENT' && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span>{commPropertyName(item.full.propertyId)}</span>
+                          </>
+                        )}
                       </div>
                       <p className="mt-2.5 max-w-3xl text-[13.5px] leading-relaxed text-ink-soft">
-                        {notice.description}
+                        {item.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    {notice.read ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => markNoticeRead(notice.id, false)}
-                      >
-                        Mark unread
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {item.kind === 'ANNOUNCEMENT' && (
+                      <Button variant="outline" size="sm" onClick={() => setDetail(item)}>
+                        <Eye size={14} /> Details
                       </Button>
+                    )}
+                    {item.read ? (
+                      item.kind === 'NOTICE' ? (
+                        <Button variant="ghost" size="sm" onClick={() => markRead(item, false)}>
+                          Mark unread
+                        </Button>
+                      ) : null
                     ) : (
-                      <Button
-                        variant="gold"
-                        size="sm"
-                        onClick={() => {
-                          markNoticeRead(notice.id)
-                          pushToast('Notice marked as read (demo).', 'info')
-                        }}
-                      >
+                      <Button variant="gold" size="sm" onClick={() => markRead(item, true)}>
                         Mark as Read
                       </Button>
                     )}
@@ -246,6 +367,104 @@ export function Notices() {
           })}
         </ul>
       )}
+
+      {/* ------------------------------------------------ announcement detail */}
+      <Modal
+        open={detail !== null}
+        title={detail?.title ?? ''}
+        subtitle={
+          detail
+            ? `${detail.label} · ${fmtDate(detail.date)} · ${commPropertyName(
+                detail.kind === 'ANNOUNCEMENT' ? detail.full.propertyId : MY_PROPERTY_ID,
+              )}`
+            : ''
+        }
+        onClose={() => setDetail(null)}
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" size="md" onClick={() => setDetail(null)}>
+              <X size={14} /> Close
+            </Button>
+            {detail && !detail.read && (
+              <Button
+                variant="gold"
+                size="md"
+                onClick={() => {
+                  markRead(detail, true)
+                  setDetail(null)
+                }}
+              >
+                <CheckCheck size={15} /> Mark as Read
+              </Button>
+            )}
+          </>
+        }
+      >
+        {detail && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  'inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]',
+                  detail.meta.badge,
+                )}
+              >
+                {detail.label}
+              </span>
+              {detail.kind === 'ANNOUNCEMENT' && <StatusBadge status={detail.priority} />}
+              <span
+                className={cn(
+                  'inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]',
+                  detail.read
+                    ? 'border-forest/25 bg-forest-soft text-forest'
+                    : 'border-gold/40 bg-gold-soft text-gold-dark',
+                )}
+              >
+                {detail.read ? 'Read' : 'Unread'}
+              </span>
+            </div>
+
+            <p className="mt-4 whitespace-pre-wrap rounded-2xl border border-line bg-ivory/50 p-4 text-sm leading-relaxed text-ink">
+              {detail.description}
+            </p>
+
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              <DetailRow label="Published" value={fmtDate(detail.date)} />
+              <DetailRow
+                label="Expiry"
+                value={detail.kind === 'ANNOUNCEMENT' && detail.expiresOn ? fmtDate(detail.expiresOn) : 'No expiry'}
+              />
+              <DetailRow label="PG" value={commPropertyName(MY_PROPERTY_ID)} />
+              <DetailRow
+                label="Audience"
+                value={
+                  detail.kind === 'ANNOUNCEMENT'
+                    ? detail.full.audience === 'ALL'
+                      ? 'All students of this PG'
+                      : `${detail.full.audienceStudentIds.length} selected student(s)`
+                    : 'All students'
+                }
+              />
+            </dl>
+
+            <p className="mt-4 text-[11.5px] text-muted">
+              {detail.kind === 'ANNOUNCEMENT'
+                ? 'Published by your PG owner — demo notice, no real push or email was sent.'
+                : 'Classic demo notice from the notice board.'}
+            </p>
+          </div>
+        )}
+      </Modal>
     </>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-white px-3.5 py-2.5">
+      <dt className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-mute">{label}</dt>
+      <dd className="mt-1 text-[13px] font-semibold text-ink">{value}</dd>
+    </div>
   )
 }

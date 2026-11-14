@@ -4,9 +4,12 @@ import {
   BedDouble,
   Building2,
   ClipboardCheck,
+  Inbox,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  Megaphone,
+  MessageSquare,
   Receipt,
   Settings,
   UserCog,
@@ -43,6 +46,14 @@ const NAV_SECTIONS: Array<{
   {
     label: 'Finance',
     items: [{ to: '/owner/billing', label: 'Billing & Payments', icon: Receipt }],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { to: '/owner/communication', label: 'Communication', icon: MessageSquare },
+      { to: '/owner/complaints', label: 'Complaints', icon: Inbox },
+      { to: '/owner/announcements', label: 'Announcements', icon: Megaphone },
+    ],
   },
   {
     label: 'Account',

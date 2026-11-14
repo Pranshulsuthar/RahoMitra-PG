@@ -39,6 +39,8 @@ interface StudentStoreValue {
   /* notices */
   markNoticeRead: (id: string, read?: boolean) => void
   markAllNoticesRead: () => void
+  /** Section 07 — dismiss a single demo notice from the bell. */
+  removeNotice: (id: string) => void
   unreadCount: number
 
   /* settings */
@@ -85,6 +87,10 @@ export function StudentStoreProvider({ children }: { children: ReactNode }) {
     setNotices((prev) => prev.map((n) => ({ ...n, read: true })))
   }, [])
 
+  const removeNotice = useCallback((id: string) => {
+    setNotices((prev) => prev.filter((n) => n.id !== id))
+  }, [])
+
   const updateSettings = useCallback(
     (patch: Partial<StudentSettings>) => {
       setSettings((prev) => ({ ...prev, ...patch }))
@@ -103,6 +109,7 @@ export function StudentStoreProvider({ children }: { children: ReactNode }) {
       updateProfile,
       markNoticeRead,
       markAllNoticesRead,
+      removeNotice,
       unreadCount,
       updateSettings,
       pushToast,
@@ -116,6 +123,7 @@ export function StudentStoreProvider({ children }: { children: ReactNode }) {
       updateProfile,
       markNoticeRead,
       markAllNoticesRead,
+      removeNotice,
       unreadCount,
       updateSettings,
       pushToast,

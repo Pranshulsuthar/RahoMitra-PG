@@ -122,6 +122,8 @@ interface OwnerStoreValue {
   updateProfile: (patch: Partial<OwnerProfile>) => void
   markNotificationRead: (id: string, read: boolean) => void
   markAllNotificationsRead: () => void
+  /** Section 07 — dismiss a single demo notification from the bell. */
+  removeNotification: (id: string) => void
 
   pushToast: (message: string, tone?: OwnerToast['tone']) => void
   dismissToast: (id: number) => void
@@ -667,6 +669,10 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
   }, [])
 
+  const removeNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
+  }, [])
+
   const value = useMemo<OwnerStoreValue>(
     () => ({
       owner,
@@ -702,6 +708,7 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       updateProfile,
       markNotificationRead,
       markAllNotificationsRead,
+      removeNotification,
       pushToast,
       dismissToast,
     }),
@@ -739,6 +746,7 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       updateProfile,
       markNotificationRead,
       markAllNotificationsRead,
+      removeNotification,
       pushToast,
       dismissToast,
     ],

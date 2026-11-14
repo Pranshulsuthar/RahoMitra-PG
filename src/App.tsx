@@ -61,9 +61,18 @@ import { BillingStoreProvider } from './context/BillingStore'
 import { OwnerBilling } from './pages/owner/OwnerBilling'
 import { StudentBilling } from './pages/student/StudentBilling'
 
+// Section 07 — Communication & Complaints (shared owner + student demo store)
+import { CommunicationStoreProvider } from './context/CommunicationStore'
+import { OwnerCommunication } from './pages/owner/OwnerCommunication'
+import { OwnerComplaints } from './pages/owner/OwnerComplaints'
+import { OwnerAnnouncements } from './pages/owner/OwnerAnnouncements'
+import { StudentMessages } from './pages/student/StudentMessages'
+import { StudentComplaints } from './pages/student/StudentComplaints'
+
 export default function App() {
   return (
     <BillingStoreProvider>
+      <CommunicationStoreProvider>
       <Routes>
       {/* ------------------------------------------- Section 01: public site */}
       <Route element={<PublicLayout />}>
@@ -104,6 +113,9 @@ export default function App() {
         <Route path="staff" element={<Staff />} />
         <Route path="availability" element={<Availability />} />
         <Route path="billing" element={<OwnerBilling />} />
+        <Route path="communication" element={<OwnerCommunication />} />
+        <Route path="complaints" element={<OwnerComplaints />} />
+        <Route path="announcements" element={<OwnerAnnouncements />} />
         <Route path="profile" element={<OwnerProfile />} />
         <Route path="settings" element={<OwnerSettings />} />
         <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
@@ -135,12 +147,15 @@ export default function App() {
         <Route path="room" element={<MyRoom />} />
         <Route path="profile" element={<StudentProfile />} />
         <Route path="notices" element={<Notices />} />
+        <Route path="messages" element={<StudentMessages />} />
+        <Route path="complaints" element={<StudentComplaints />} />
         <Route path="billing" element={<StudentBilling />} />
         <Route path="support" element={<StudentSupport />} />
         <Route path="settings" element={<StudentSettings />} />
         <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
       </Route>
       </Routes>
+      </CommunicationStoreProvider>
     </BillingStoreProvider>
   )
 }

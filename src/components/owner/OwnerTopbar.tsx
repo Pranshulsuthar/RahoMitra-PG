@@ -12,9 +12,11 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useOwnerStore } from '../../context/OwnerStore'
+import { useCommunicationStore } from '../../context/CommunicationStore'
 import { cn } from '../../utils/cn'
 import { ConfirmDialog } from '../admin/ConfirmDialog'
 import { PropertySwitcher } from './PropertySwitcher'
+import type { OwnerNotification } from '../../types/owner'
 
 const TITLES: Array<[string, string, string]> = [
   ['/owner/dashboard', 'Owner Dashboard', 'Your properties at a glance'],
@@ -25,9 +27,20 @@ const TITLES: Array<[string, string, string]> = [
   ['/owner/staff', 'Staff Management', 'Your on-ground team'],
   ['/owner/availability', 'Availability', 'Live bed availability across properties'],
   ['/owner/billing', 'Billing & Payments', 'Bills, invoices and payment records'],
+  ['/owner/communication', 'Communication', 'Private chats with your students'],
+  ['/owner/complaints', 'Complaints', 'Review and resolve student tickets'],
+  ['/owner/announcements', 'Announcements', 'Notices for your PG students'],
   ['/owner/profile', 'Owner Profile', 'Your account details'],
   ['/owner/settings', 'Settings', 'Preferences and account options'],
 ]
+
+/** Where a legacy OwnerNotification sends you when clicked. */
+const LEGACY_ROUTES: Record<OwnerNotification['category'], string> = {
+  ADMISSION: '/owner/admissions',
+  ROOM: '/owner/rooms',
+  PROPERTY: '/owner/properties',
+  ACCOUNT: '/owner/settings',
+}
 
 interface OwnerTopbarProps {
   collapsed: boolean
@@ -46,9 +59,17 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
     students,
     requests,
     notifications,
+    markNotificationRead,
     markAllNotificationsRead,
+    removeNotification,
     pushToast,
   } = useOwnerStore()
+  const {
+    roleNotifications,
+    markNotificationRead: markCommRead,
+    markAllNotificationsRead: markAllCommRead,
+    clearNotification,
+  } = useCommunicationStore()
 
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -66,8 +87,63 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
     return match ? [match[1], match[2]] : ['Owner Console', 'RahoMitra PG owner dashboard']
   }, [pathname])
 
-  const unread = notifications.filter((n) => !n.read).length
+  const commNotes = roleNotifications('OWNER')
+  const unread =
+    notifications.filter((n) => !n.read).length + commNotes.filter((n) => !n.read).length
   const pending = requests.filter((r) => r.status === 'PENDING').length
+
+  /** Unified bell row — legacy OwnerStore notices + Section 07 comms. */
+  const bellRows = useMemo(() => {
+    type Row = {
+      id: string
+      source: 'LEGACY' | 'COMM'
+      title: string
+      body: string
+      date: string
+      read: boolean
+      to: string
+    }
+    const legacy: Row[] = notifications.map((n) => ({
+      id: n.id,
+      source: 'LEGACY',
+      title: n.title,
+      body: n.message,
+      date: n.on,
+      read: n.read,
+      to: LEGACY_ROUTES[n.category],
+    }))
+    const comm: Row[] = commNotes.map((n) => ({
+      id: n.id,
+      source: 'COMM',
+      title: n.title,
+      body: n.body,
+      date: `${n.date} ${n.at}`,
+      read: n.read,
+      to: n.to,
+    }))
+    return [...legacy, ...comm]
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+      .slice(0, 7)
+  }, [notifications, commNotes])
+
+  const openRow = (row: { id: string; source: string; to: string }) => {
+    if (row.source === 'COMM') markCommRead(row.id)
+    else markNotificationRead(row.id, true)
+    setBellOpen(false)
+    navigate(row.to)
+  }
+
+  const dismissRow = (row: { id: string; source: string }) => {
+    if (row.source === 'COMM') clearNotification(row.id)
+    else removeNotification(row.id)
+    pushToast('Notification cleared (demo).', 'info')
+  }
+
+  const markAllBell = () => {
+    markAllNotificationsRead()
+    markAllCommRead('OWNER')
+    pushToast('All demo notifications marked as read.', 'info')
+  }
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -238,36 +314,56 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    markAllNotificationsRead()
-                    pushToast('All demo notifications marked as read.', 'info')
-                  }}
+                  onClick={markAllBell}
                   className="text-[11px] font-semibold text-forest hover:text-gold-dark"
                 >
                   Mark all read
                 </button>
               </div>
-              <ul className="max-h-72 overflow-y-auto">
-                {notifications.slice(0, 5).map((n) => (
+              <ul className="max-h-80 overflow-y-auto">
+                {bellRows.length === 0 && (
+                  <li className="px-4 py-6 text-center text-[12.5px] text-ink-mute">
+                    You're all caught up — no demo notifications.
+                  </li>
+                )}
+                {bellRows.map((n) => (
                   <li
-                    key={n.id}
-                    className="flex gap-3 border-b border-line/70 px-4 py-3 last:border-0"
+                    key={`${n.source}-${n.id}`}
+                    className="group flex gap-3 border-b border-line/70 px-4 py-3 last:border-0"
                   >
-                    <span
-                      className={cn(
-                        'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                        n.read ? 'bg-line' : 'bg-gold',
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-semibold text-ink">
-                        {n.title}
+                    <button
+                      type="button"
+                      onClick={() => openRow(n)}
+                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                      aria-label={`Open notification: ${n.title}`}
+                    >
+                      <span
+                        className={cn(
+                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                          n.read ? 'bg-line' : 'bg-gold',
+                        )}
+                        aria-hidden
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-semibold text-ink">
+                          {n.title}
+                        </span>
+                        <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
+                          {n.body}
+                        </span>
+                        <span className="mt-1 block text-[10px] font-bold uppercase tracking-wider text-ink-mute/80">
+                          {n.date} · demo
+                        </span>
                       </span>
-                      <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
-                        {n.message}
-                      </span>
-                    </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => dismissRow(n)}
+                      aria-label={`Clear notification: ${n.title}`}
+                      className="shrink-0 rounded-full p-1 text-ink-mute opacity-0 transition hover:bg-danger-soft hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                    >
+                      ×
+                    </button>
                   </li>
                 ))}
               </ul>
