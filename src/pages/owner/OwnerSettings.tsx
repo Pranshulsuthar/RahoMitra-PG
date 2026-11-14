@@ -4,19 +4,27 @@ import {
   Building2,
   Check,
   Eye,
+  ImagePlus,
   Moon,
   Palette,
+  QrCode,
   Save,
   ShieldCheck,
   Sun,
   UserRound,
+  Wallet,
+  X,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
+import { useBillingStore } from '../../context/BillingStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { DemoBanner } from '../../components/admin/DemoBanner'
 import { Button } from '../../components/common/Button'
+import { FormInput, FormTextarea } from '../../components/owner/FormInput'
 import { cn } from '../../utils/cn'
+
+const MAX_QR_BYTES = 5 * 1024 * 1024
 
 interface ToggleRowProps {
   icon: typeof Bell
@@ -66,6 +74,14 @@ export function OwnerSettings() {
   useDocumentTitle('Settings')
 
   const { owner, properties, pushToast } = useOwnerStore()
+  const { paymentDetails, updatePaymentDetails, pushToast: pushBillingToast } = useBillingStore()
+
+  const [payForm, setPayForm] = useState({
+    upiId: paymentDetails.upiId,
+    accountHolder: paymentDetails.accountHolder,
+    instructions: paymentDetails.instructions,
+  })
+  const [qrError, setQrError] = useState<string | null>(null)
 
   const [prefs, setPrefs] = useState({
     emailAlerts: true,
@@ -83,6 +99,35 @@ export function OwnerSettings() {
 
   const saveAll = () => {
     pushToast('Preferences saved (demo — local state only).')
+  }
+
+  const savePaymentDetails = () => {
+    updatePaymentDetails({
+      upiId: payForm.upiId.trim(),
+      accountHolder: payForm.accountHolder.trim(),
+      instructions: payForm.instructions.trim(),
+    })
+    pushBillingToast('Payment details saved — students now see these on their invoices (demo).')
+  }
+
+  const handleQrFile = (file: File | undefined) => {
+    if (!file) return
+    setQrError(null)
+    if (!file.type.startsWith('image/')) {
+      setQrError('Please choose an image file (PNG or JPG).')
+      return
+    }
+    if (file.size > MAX_QR_BYTES) {
+      setQrError('Image must be 5MB or smaller.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      updatePaymentDetails({ qrImage: String(reader.result ?? '') })
+      pushBillingToast('QR preview stored locally — it never leaves this browser (demo).')
+    }
+    reader.onerror = () => setQrError('Could not read that file — try another image.')
+    reader.readAsDataURL(file)
   }
 
   return (
@@ -261,6 +306,118 @@ export function OwnerSettings() {
               <Building2 className="h-3.5 w-3.5" aria-hidden />
               {properties.length} properties in this account
             </span>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------- payment details */}
+        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6 xl:col-span-2">
+          <h2 className="mb-1 flex items-center gap-2.5 text-base sm:text-lg">
+            <Wallet className="h-4.5 w-4.5 text-gold-dark" aria-hidden />
+            Payment Details
+          </h2>
+          <p className="mb-4 text-[12.5px] text-ink-mute">
+            How students pay you directly (offline). These details appear on every student invoice
+            in the “My Bills” screen — RahoMitra never collects rent itself.
+          </p>
+
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormInput
+                id="pay-upi"
+                label="UPI ID"
+                value={payForm.upiId}
+                onChange={(v) => setPayForm((p) => ({ ...p, upiId: v }))}
+                placeholder="yourname@okaxis"
+                hint="Students see this on their invoice (demo)."
+              />
+              <FormInput
+                id="pay-holder"
+                label="Account Holder Name"
+                value={payForm.accountHolder}
+                onChange={(v) => setPayForm((p) => ({ ...p, accountHolder: v }))}
+                placeholder="e.g. Rakesh Sharma (demo)"
+              />
+              <FormTextarea
+                id="pay-instructions"
+                label="Payment Instructions"
+                rows={3}
+                maxLength={400}
+                value={payForm.instructions}
+                onChange={(v) => setPayForm((p) => ({ ...p, instructions: v }))}
+                placeholder="e.g. Pay via UPI or cash at the PG counter…"
+                className="sm:col-span-2"
+                hint="Shown to students on their invoice below the payment message."
+              />
+              <div className="sm:col-span-2">
+                <Button variant="primary" onClick={savePaymentDetails}>
+                  <Save className="h-4 w-4" aria-hidden />
+                  Save payment details
+                </Button>
+              </div>
+            </div>
+
+            {/* QR preview */}
+            <div className="flex w-full flex-col items-center rounded-2xl border border-line bg-ivory/40 px-5 py-4 lg:w-64">
+              <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
+                <QrCode className="h-4 w-4 text-gold-dark" aria-hidden />
+                UPI QR (local preview)
+              </p>
+              {paymentDetails.qrImage ? (
+                <div className="relative">
+                  <img
+                    src={paymentDetails.qrImage}
+                    alt="Owner UPI QR preview (demo)"
+                    className="h-40 w-40 rounded-xl border border-line bg-white object-contain p-2"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Remove QR image"
+                    onClick={() => {
+                      updatePaymentDetails({ qrImage: '' })
+                      pushToast('QR preview removed (demo).', 'info')
+                    }}
+                    className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white text-danger shadow-sm transition-colors hover:bg-danger-soft"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex h-40 w-40 flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white text-center text-[11px] leading-snug text-ink-mute">
+                  <ImagePlus className="mb-1.5 h-6 w-6" aria-hidden />
+                  No QR uploaded yet
+                </div>
+              )}
+              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-forest/25 px-4 py-2 text-[12px] font-bold text-forest transition-colors hover:bg-forest hover:text-ivory">
+                <ImagePlus className="h-3.5 w-3.5" aria-hidden />
+                Upload QR
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    handleQrFile(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+              <p className="mt-2 text-center text-[10.5px] text-ink-mute">
+                Stored as a local data-URL only — never uploaded (max 5MB).
+              </p>
+              {qrError && (
+                <p role="alert" className="mt-2 text-[11.5px] font-semibold text-danger">
+                  {qrError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
+            <Wallet className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <p>
+              Students pay you directly (UPI / cash / bank transfer). You record each receipt
+              manually in <strong>Billing &amp; Payments → Record Payment</strong> — RahoMitra does
+              not verify or process the transaction.
+            </p>
           </div>
         </section>
       </div>

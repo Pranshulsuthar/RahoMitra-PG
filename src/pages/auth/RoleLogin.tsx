@@ -5,7 +5,7 @@ import { Info, Lock, GraduationCap, Building2, ShieldCheck, ArrowLeft, KeyRound 
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useForm } from '../../hooks/useForm'
 import { compose, minLength, required } from '../../utils/validation'
-import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD, DEMO_OWNER_EMAIL, DEMO_OWNER_PASSWORD, isEmail, simulateLatency } from '../../utils/authDemo'
+import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD, DEMO_OWNER_EMAIL, DEMO_OWNER_PASSWORD, DEMO_STUDENT_EMAIL, DEMO_STUDENT_PASSWORD, isEmail, simulateLatency } from '../../utils/authDemo'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { AuthCard } from '../../components/auth/AuthCard'
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -33,7 +33,7 @@ const CONFIG: Record<LoginRole, RoleConfig> = {
   student: {
     eyebrow: 'Student access',
     title: 'Student Login',
-    subtitle: 'Welcome back — sign in to continue your PG search.',
+    subtitle: 'Welcome back — sign in to view your PG dashboard, room and notices.',
     rememberMe: true,
     forgotPassword: true,
     signupPrompt: {
@@ -132,6 +132,21 @@ export function RoleLogin({ role }: { role: LoginRole }) {
       return
     }
 
+    if (role === 'student') {
+      // Frontend-only credential comparison — no API, database or session.
+      const emailOk = form.values.email.trim().toLowerCase() === DEMO_STUDENT_EMAIL
+      const passwordOk = form.values.password === DEMO_STUDENT_PASSWORD
+      if (emailOk && passwordOk) {
+        setAuthError(null)
+        navigate('/student/dashboard')
+      } else {
+        setAuthError(
+          'Those demo credentials don’t match. Try the DEMO MODE credentials shown below (frontend comparison only).',
+        )
+      }
+      return
+    }
+
     setDemoNotice(true)
   }
 
@@ -193,7 +208,7 @@ export function RoleLogin({ role }: { role: LoginRole }) {
                   </div>
                 )}
 
-                {(role === 'admin' || role === 'owner') && (
+                {(role === 'admin' || role === 'owner' || role === 'student') && (
                   <div className="mb-6 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3.5">
                     <p className="mb-2 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.18em] text-gold-dark">
                       <KeyRound className="h-3.5 w-3.5" aria-hidden />
@@ -203,13 +218,21 @@ export function RoleLogin({ role }: { role: LoginRole }) {
                       <li className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-ink">Email:</span>
                         <code className="rounded bg-white px-2 py-0.5 font-mono text-[12.5px] text-forest">
-                          {role === 'admin' ? DEMO_ADMIN_EMAIL : DEMO_OWNER_EMAIL}
+                          {role === 'admin'
+                            ? DEMO_ADMIN_EMAIL
+                            : role === 'owner'
+                              ? DEMO_OWNER_EMAIL
+                              : DEMO_STUDENT_EMAIL}
                         </code>
                       </li>
                       <li className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-ink">Password:</span>
                         <code className="rounded bg-white px-2 py-0.5 font-mono text-[12.5px] text-forest">
-                          {role === 'admin' ? DEMO_ADMIN_PASSWORD : DEMO_OWNER_PASSWORD}
+                          {role === 'admin'
+                            ? DEMO_ADMIN_PASSWORD
+                            : role === 'owner'
+                              ? DEMO_OWNER_PASSWORD
+                              : DEMO_STUDENT_PASSWORD}
                         </code>
                       </li>
                     </ul>

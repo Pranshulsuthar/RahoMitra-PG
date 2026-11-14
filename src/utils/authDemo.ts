@@ -24,6 +24,14 @@ export const DEMO_ADMIN_PASSWORD = 'Raho@Admin123'
 export const DEMO_OWNER_EMAIL = 'owner1@rahomitra.demo'
 export const DEMO_OWNER_PASSWORD = 'Raho@Owner123'
 
+/**
+ * Frontend-only demo credentials for the Student Dashboard (Section 05).
+ * Comparison happens purely in the browser — there is no API, database,
+ * JWT or real session. NEVER treat these as production credentials.
+ */
+export const DEMO_STUDENT_EMAIL = 'student@rahomitra.demo'
+export const DEMO_STUDENT_PASSWORD = 'Raho@Student123'
+
 /** Seconds before the "Resend OTP" button becomes available. */
 export const OTP_RESEND_SECONDS = 30
 

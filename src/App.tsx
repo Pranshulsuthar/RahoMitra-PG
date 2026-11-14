@@ -46,9 +46,25 @@ import { Availability } from './pages/owner/Availability'
 import { OwnerProfile } from './pages/owner/OwnerProfile'
 import { OwnerSettings } from './pages/owner/OwnerSettings'
 
+// Section 05 — Student dashboard
+import { StudentLayout } from './components/student/StudentLayout'
+import { StudentDashboard } from './pages/student/StudentDashboard'
+import { MyAccommodation } from './pages/student/MyAccommodation'
+import { MyRoom } from './pages/student/MyRoom'
+import { StudentProfile } from './pages/student/StudentProfile'
+import { Notices } from './pages/student/Notices'
+import { StudentSupport } from './pages/student/StudentSupport'
+import { StudentSettings } from './pages/student/StudentSettings'
+
+// Section 06 — Billing & Payments (shared owner + student demo store)
+import { BillingStoreProvider } from './context/BillingStore'
+import { OwnerBilling } from './pages/owner/OwnerBilling'
+import { StudentBilling } from './pages/student/StudentBilling'
+
 export default function App() {
   return (
-    <Routes>
+    <BillingStoreProvider>
+      <Routes>
       {/* ------------------------------------------- Section 01: public site */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
@@ -87,6 +103,7 @@ export default function App() {
         <Route path="admissions" element={<Admissions />} />
         <Route path="staff" element={<Staff />} />
         <Route path="availability" element={<Availability />} />
+        <Route path="billing" element={<OwnerBilling />} />
         <Route path="profile" element={<OwnerProfile />} />
         <Route path="settings" element={<OwnerSettings />} />
         <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
@@ -109,6 +126,21 @@ export default function App() {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
-    </Routes>
+
+      {/* --------------------------------------- Section 05: Student console */}
+      <Route path="/student" element={<StudentLayout />}>
+        <Route index element={<Navigate to="/student/dashboard" replace />} />
+        <Route path="dashboard" element={<StudentDashboard />} />
+        <Route path="accommodation" element={<MyAccommodation />} />
+        <Route path="room" element={<MyRoom />} />
+        <Route path="profile" element={<StudentProfile />} />
+        <Route path="notices" element={<Notices />} />
+        <Route path="billing" element={<StudentBilling />} />
+        <Route path="support" element={<StudentSupport />} />
+        <Route path="settings" element={<StudentSettings />} />
+        <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
+      </Route>
+      </Routes>
+    </BillingStoreProvider>
   )
 }

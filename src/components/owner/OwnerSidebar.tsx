@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  Receipt,
   Settings,
   UserCog,
   UserRound,
@@ -38,6 +39,10 @@ const NAV_SECTIONS: Array<{
       { to: '/owner/admissions', label: 'Admission Management', icon: ClipboardCheck },
       { to: '/owner/staff', label: 'Staff Management', icon: UserCog },
     ],
+  },
+  {
+    label: 'Finance',
+    items: [{ to: '/owner/billing', label: 'Billing & Payments', icon: Receipt }],
   },
   {
     label: 'Account',

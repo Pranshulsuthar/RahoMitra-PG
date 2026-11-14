@@ -27,7 +27,6 @@ import type {
   PropertyStatus,
   RoomType,
   StaffMember,
-  StaffRole,
 } from '../types/owner'
 import { roomOccupancy } from '../types/owner'
 
@@ -115,8 +114,8 @@ interface OwnerStoreValue {
   decideRequest: (requestId: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => void
 
   /* staff */
-  addStaff: (input: { propertyId: string; name: string; email: string; mobile: string; role: StaffRole }) => void
-  updateStaff: (id: string, patch: { name: string; email: string; mobile: string; role: StaffRole; propertyId: string }) => void
+  addStaff: (input: { propertyId: string; name: string; email: string; mobile: string; role: string }) => void
+  updateStaff: (id: string, patch: { name: string; email: string; mobile: string; role: string; propertyId: string }) => void
   removeStaff: (id: string) => void
 
   /* account */
@@ -617,7 +616,7 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   /* ------------------------------------------------------------- staff */
 
   const addStaff = useCallback(
-    (input: { propertyId: string; name: string; email: string; mobile: string; role: StaffRole }) => {
+    (input: { propertyId: string; name: string; email: string; mobile: string; role: string }) => {
       const property = properties.find((p) => p.id === input.propertyId)
       if (!property) {
         pushToast('Select a valid PG property.', 'error')
@@ -631,7 +630,7 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   )
 
   const updateStaff = useCallback(
-    (id: string, patch: { name: string; email: string; mobile: string; role: StaffRole; propertyId: string }) => {
+    (id: string, patch: { name: string; email: string; mobile: string; role: string; propertyId: string }) => {
       setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
       pushToast(`Staff record for ${patch.name} updated (demo).`)
     },

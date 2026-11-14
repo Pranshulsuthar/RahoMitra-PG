@@ -24,6 +24,7 @@ const TITLES: Array<[string, string, string]> = [
   ['/owner/admissions', 'Admission Management', 'Codes, requests and approvals'],
   ['/owner/staff', 'Staff Management', 'Your on-ground team'],
   ['/owner/availability', 'Availability', 'Live bed availability across properties'],
+  ['/owner/billing', 'Billing & Payments', 'Bills, invoices and payment records'],
   ['/owner/profile', 'Owner Profile', 'Your account details'],
   ['/owner/settings', 'Settings', 'Preferences and account options'],
 ]
@@ -138,19 +139,19 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
         </button>
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold leading-tight text-ink sm:text-xl">
+          <h1 className="truncate font-display text-lg font-semibold leading-tight tracking-tight text-ink sm:text-xl">
             {title}
           </h1>
           <p className="hidden truncate text-[11.5px] text-ink-mute sm:block">{subtitle}</p>
         </div>
 
-        {/* Multi-property switcher */}
-        <div className="hidden md:block">
+        {/* Multi-property switcher — hidden on md so the page title never collapses */}
+        <div className="hidden lg:block">
           <PropertySwitcher />
         </div>
 
-        {/* Global search */}
-        <div ref={searchRef} className="relative hidden lg:block">
+        {/* Global search — hidden below xl so the page title never collapses */}
+        <div ref={searchRef} className="relative hidden xl:block">
           <Search
             className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-mute"
             aria-hidden

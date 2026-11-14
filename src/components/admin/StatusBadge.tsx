@@ -41,6 +41,11 @@ const STATUS_STYLES: Record<string, string> = {
   VACANT: 'bg-forest-soft text-forest border-forest/25',
   PARTIAL: 'bg-gold-soft text-gold-dark border-gold/40',
   FULL: 'bg-danger-soft text-danger border-danger/30',
+  // billing & payments (Section 06)
+  PAID: 'bg-forest-soft text-forest border-forest/25',
+  UNPAID: 'bg-danger-soft text-danger border-danger/30',
+  PARTIALLY_PAID: 'bg-gold-soft text-gold-dark border-gold/40',
+  OVERDUE: 'bg-danger text-white border-danger',
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

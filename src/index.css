@@ -431,3 +431,48 @@ select.form-input {
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
 }
+
+/* ---------------------------------------------------------------
+   Print — browser print outputs only the invoice (.print-area);
+   every other chrome (sidebar, topbar, modal footer, toasts) is
+   hidden. Used by Billing & Payments → Print / Download.
+--------------------------------------------------------------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* The modal wrapper (portal) must not clip the invoice */
+  .print-area-portal {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

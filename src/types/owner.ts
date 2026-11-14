@@ -23,7 +23,7 @@ export type MembershipStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
 export type AdmissionCodeStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
 export type AdmissionRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
-export type StaffRole = 'MANAGER' | 'WARDEN' | 'ACCOUNTANT' | 'MAINTENANCE' | 'OTHER'
+/** Staff role is a free-text identity the owner defines themselves (e.g. Chef). */
 
 /** A PG property owned by the demo owner. */
 export interface OwnerProperty {
@@ -119,7 +119,8 @@ export interface StaffMember {
   email: string
   /** Fictional demo contact. */
   mobile: string
-  role: StaffRole
+  /** Owner-defined role text — no fixed list, no permissions in this demo. */
+  role: string
   joinedOn: string
 }
 
@@ -182,14 +183,6 @@ export const FOOD_LABELS: Record<FoodOption, string> = {
   INCLUDED: 'Included in rent',
   PAID: 'Paid separately',
   NOT_AVAILABLE: 'Not available',
-}
-
-export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
-  MANAGER: 'Manager',
-  WARDEN: 'Warden',
-  ACCOUNTANT: 'Accountant',
-  MAINTENANCE: 'Maintenance Staff',
-  OTHER: 'Other',
 }
 
 /** Room occupancy derived from its beds. */

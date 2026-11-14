@@ -134,7 +134,7 @@ export const OWNER_PROPERTIES: OwnerProperty[] = [
 /* ---------------------------------------------------------------- rooms */
 
 export const OWNER_ROOMS: OwnerRoom[] = [
-  // ---- Shree Shyam Boys PG (pg-001): 6 rooms · 13 beds
+  // ---- Shree Shyam Boys PG (pg-001): 7 rooms · 15 beds
   room('r-101', 'pg-001', '101', 1, 'DOUBLE', 9500, [
     ['A', 'OCCUPIED'],
     ['B', 'AVAILABLE'],
@@ -157,6 +157,11 @@ export const OWNER_ROOMS: OwnerRoom[] = [
     ['A', 'OCCUPIED'],
     ['B', 'AVAILABLE'],
     ['C', 'AVAILABLE'],
+  ]),
+  // Room 204 is the Section 05 demo student's allocation (Rahul Sharma).
+  room('r-204', 'pg-001', '204', 2, 'DOUBLE', 7500, [
+    ['A', 'OCCUPIED'],
+    ['B', 'OCCUPIED'],
   ]),
   // ---- Ashiana PG (pg-002): 4 rooms · 8 beds
   room('r-g01', 'pg-002', 'G-01', 0, 'SINGLE', 13500, [['A', 'OCCUPIED']]),
@@ -239,6 +244,17 @@ export const OWNER_STUDENTS: OwnerStudent[] = [
     name: 'Harsh Vyas (demo)', email: 'student12@rahomitra.demo', mobile: '98765 43032',
     college: 'MNIT Jaipur (demo)', city: 'Udaipur', admissionDate: '2026-01-30', membership: 'INACTIVE',
   },
+  {
+    // Section 05 demo student — the logged-in student of the student dashboard.
+    id: 'stu-13', propertyId: 'pg-001', roomId: 'r-204', bedId: 'r-204-bed-B',
+    name: 'Rahul Sharma (demo)', email: 'student@rahomitra.demo', mobile: '98765 43050',
+    college: 'SKIT Jaipur (demo)', city: 'Jaipur', admissionDate: '2026-01-25', membership: 'ACTIVE',
+  },
+  {
+    id: 'stu-14', propertyId: 'pg-001', roomId: 'r-204', bedId: 'r-204-bed-A',
+    name: 'Aman Verma (demo)', email: 'student25@rahomitra.demo', mobile: '98765 43051',
+    college: 'SKIT Jaipur (demo)', city: 'Jaipur', admissionDate: '2026-02-08', membership: 'ACTIVE',
+  },
 ]
 
 /* ------------------------------------------------------- admission codes */
@@ -295,23 +311,27 @@ export const ADMISSION_REQUESTS: AdmissionRequest[] = [
 export const OWNER_STAFF: StaffMember[] = [
   {
     id: 'staff-1', propertyId: 'pg-001', name: 'Suresh Jangir (demo)',
-    email: 'staff01@rahomitra.demo', mobile: '98765 43101', role: 'MANAGER', joinedOn: '2026-01-20',
+    email: 'staff01@rahomitra.demo', mobile: '98765 43101', role: 'Manager', joinedOn: '2026-01-20',
   },
   {
     id: 'staff-2', propertyId: 'pg-001', name: 'Anita Sharma (demo)',
-    email: 'staff02@rahomitra.demo', mobile: '98765 43102', role: 'WARDEN', joinedOn: '2026-02-01',
+    email: 'staff02@rahomitra.demo', mobile: '98765 43102', role: 'Warden', joinedOn: '2026-02-01',
   },
   {
     id: 'staff-3', propertyId: 'pg-002', name: 'Meena Parewa (demo)',
-    email: 'staff03@rahomitra.demo', mobile: '98765 43103', role: 'WARDEN', joinedOn: '2026-02-10',
+    email: 'staff03@rahomitra.demo', mobile: '98765 43103', role: 'Warden', joinedOn: '2026-02-10',
   },
   {
     id: 'staff-4', propertyId: 'pg-002', name: 'Ramesh Saini (demo)',
-    email: 'staff04@rahomitra.demo', mobile: '98765 43104', role: 'MAINTENANCE', joinedOn: '2026-03-02',
+    email: 'staff04@rahomitra.demo', mobile: '98765 43104', role: 'Maintenance Staff', joinedOn: '2026-03-02',
   },
   {
     id: 'staff-5', propertyId: 'pg-002', name: 'Vikas Agarwal (demo)',
-    email: 'staff05@rahomitra.demo', mobile: '98765 43105', role: 'ACCOUNTANT', joinedOn: '2026-03-15',
+    email: 'staff05@rahomitra.demo', mobile: '98765 43105', role: 'Accountant', joinedOn: '2026-03-15',
+  },
+  {
+    id: 'staff-6', propertyId: 'pg-001', name: 'Kamla Devi (demo)',
+    email: 'staff06@rahomitra.demo', mobile: '98765 43106', role: 'Chef', joinedOn: '2026-04-05',
   },
 ]
 

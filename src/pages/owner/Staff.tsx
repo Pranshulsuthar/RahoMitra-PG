@@ -1,28 +1,26 @@
 import { useMemo, useState } from 'react'
-import { Mail, Phone, UserCog, Plus, Trash2, PencilLine } from 'lucide-react'
+import { Mail, Phone, UserCog, Plus, Trash2, PencilLine, Building2 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { DemoBanner } from '../../components/admin/DemoBanner'
-import { SearchInput, FilterSelect } from '../../components/admin/Filters'
+import { SearchInput } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { FormInput, FormSelect } from '../../components/owner/FormInput'
-import { STAFF_ROLE_LABELS } from '../../types/owner'
-import type { StaffMember, StaffRole } from '../../types/owner'
+import type { StaffMember } from '../../types/owner'
 
 interface StaffForm {
   propertyId: string
   name: string
   email: string
   mobile: string
-  role: StaffRole
+  /** Free-text role the owner writes themselves (e.g. Chef, Manager, Cleaner). */
+  role: string
 }
-
-const ROLE_OPTIONS = Object.entries(STAFF_ROLE_LABELS).map(([value, label]) => ({ value, label }))
 
 /** /owner/staff — manage on-ground staff for the demo owner's properties. */
 export function Staff() {
@@ -39,7 +37,6 @@ export function Staff() {
   } = useOwnerStore()
 
   const [query, setQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState('ALL')
   const [addOpen, setAddOpen] = useState(false)
   const [editing, setEditing] = useState<StaffMember | null>(null)
   const [removing, setRemoving] = useState<StaffMember | null>(null)
@@ -49,7 +46,7 @@ export function Staff() {
     name: '',
     email: '',
     mobile: '',
-    role: 'MANAGER',
+    role: '',
   })
 
   const ownProperties = useMemo(
@@ -65,11 +62,10 @@ export function Staff() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return ownStaff.filter((member) => {
-      if (roleFilter !== 'ALL' && member.role !== roleFilter) return false
-      if (q && !`${member.name} ${member.email} ${member.mobile}`.toLowerCase().includes(q)) return false
+      if (q && !`${member.name} ${member.email} ${member.mobile} ${member.role}`.toLowerCase().includes(q)) return false
       return true
     })
-  }, [ownStaff, query, roleFilter])
+  }, [ownStaff, query])
 
   const propertyOptions = ownProperties.map((p) => ({ value: p.id, label: p.name }))
 
@@ -79,7 +75,7 @@ export function Staff() {
       name: '',
       email: '',
       mobile: '',
-      role: 'MANAGER',
+      role: '',
     })
     setErrors({})
     setAddOpen(true)
@@ -104,6 +100,8 @@ export function Staff() {
     if (!form.email.trim()) next.email = 'Email is required.'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = 'Enter a valid email.'
     if (!form.mobile.trim()) next.mobile = 'Mobile number is required.'
+    if (!form.role.trim()) next.role = 'Enter the staff role/identity (e.g. Chef, Warden).'
+    else if (form.role.trim().length < 2) next.role = 'Role must be at least 2 characters.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -162,7 +160,7 @@ export function Staff() {
       sortValue: (s) => s.role,
       render: (s) => (
         <span className="rounded-full border border-line bg-ivory px-3 py-1 text-[11.5px] font-bold text-ink-soft">
-          {STAFF_ROLE_LABELS[s.role]}
+          {s.role}
         </span>
       ),
     },
@@ -209,11 +207,6 @@ export function Staff() {
     },
   ]
 
-  const roleCounts = Object.keys(STAFF_ROLE_LABELS).map((role) => ({
-    role: role as StaffRole,
-    count: ownStaff.filter((s) => s.role === role).length,
-  }))
-
   return (
     <>
       <AdminPageHeader
@@ -233,31 +226,23 @@ export function Staff() {
 
       <DemoBanner message="staff records are fictional demo data — no staff accounts, logins or permissions exist." />
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         <StatisticCard label="Total Staff" value={ownStaff.length} icon={UserCog} tone="ink" />
-        {roleCounts.map((entry) => (
+        {ownProperties.map((property) => (
           <StatisticCard
-            key={entry.role}
-            label={STAFF_ROLE_LABELS[entry.role]}
-            value={entry.count}
-            icon={UserCog}
+            key={property.id}
+            label={property.name}
+            value={ownStaff.filter((s) => s.propertyId === property.id).length}
+            icon={Building2}
             tone="forest"
+            hint="Staff assigned"
           />
         ))}
       </div>
 
       <div className="rounded-3xl border border-line bg-white p-4 shadow-card">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <SearchInput value={query} onChange={setQuery} placeholder="Search staff by name, email…" />
-          <FilterSelect
-            label="Role"
-            value={roleFilter}
-            onChange={setRoleFilter}
-            options={[
-              { value: 'ALL', label: 'Any role' },
-              ...ROLE_OPTIONS,
-            ]}
-          />
+          <SearchInput value={query} onChange={setQuery} placeholder="Search staff by name, role, email…" />
           <span className="ml-auto text-[12px] font-semibold text-ink-mute">
             {filtered.length} of {ownStaff.length} staff
           </span>
@@ -268,7 +253,7 @@ export function Staff() {
           rowKey={(s) => s.id}
           pageSize={8}
           emptyTitle="No staff found"
-          emptyDescription="No demo staff match the current search or role filter for your properties."
+          emptyDescription="No demo staff match the current search for your properties."
         />
       </div>
 
@@ -395,12 +380,15 @@ function StaffFormFields({
         placeholder="e.g. Ramesh Kumar (demo)"
         error={errors.name}
       />
-      <FormSelect
+      <FormInput
         id="staff-role"
-        label="Role"
+        label="Role / Designation"
+        required
         value={form.role}
-        onChange={(v) => setForm({ ...form, role: v as StaffRole })}
-        options={ROLE_OPTIONS}
+        onChange={(v) => setForm({ ...form, role: v })}
+        placeholder="e.g. Chef, Manager, Cleaner…"
+        error={errors.role}
+        hint="Write the staff member's identity yourself — no fixed list."
       />
       <FormInput
         id="staff-email"
