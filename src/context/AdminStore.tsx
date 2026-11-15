@@ -24,7 +24,6 @@ import type {
   Advertisement,
   ApplicationStatus,
   FeaturedRequest,
-  FeaturedRequestStatus,
   FeaturedListingStatus,
   NotificationCategory,
   NotificationAudience,

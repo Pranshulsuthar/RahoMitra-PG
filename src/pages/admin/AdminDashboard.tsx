@@ -13,6 +13,7 @@ import {
   Layers,
   Megaphone,
   Plus,
+  Star,
   UserCheck,
   Users,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ const ACTIVITY_ICONS = {
   student: GraduationCap,
   subscription: Layers,
   support: Clock,
+  platform: Star,
 }
 
 /** /admin/dashboard — platform overview with clearly-labelled demo data. */

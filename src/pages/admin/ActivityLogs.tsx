@@ -1,0 +1,158 @@
+import { useMemo, useState } from 'react'
+import { Building2, GraduationCap, History, Layers, LifeBuoy, Star, UserCheck } from 'lucide-react'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAdminStore } from '../../context/AdminStore'
+import type { ActivityItem } from '../../types/admin'
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
+import { DemoBanner } from '../../components/admin/DemoBanner'
+import { DataTable } from '../../components/admin/DataTable'
+import type { Column } from '../../components/admin/DataTable'
+import { FilterSelect, SearchInput } from '../../components/admin/Filters'
+import { cn } from '../../utils/cn'
+
+const KIND_META: Record<
+  ActivityItem['kind'],
+  { label: string; icon: typeof History; className: string }
+> = {
+  pg: { label: 'PG', icon: Building2, className: 'bg-forest-soft text-forest' },
+  owner: { label: 'Owner', icon: UserCheck, className: 'bg-gold-soft text-gold-dark' },
+  student: { label: 'Student', icon: GraduationCap, className: 'bg-ivory text-ink' },
+  subscription: { label: 'Subscription', icon: Layers, className: 'bg-forest-soft text-forest' },
+  support: { label: 'Support', icon: LifeBuoy, className: 'bg-danger-soft text-danger' },
+  platform: { label: 'Platform', icon: Star, className: 'bg-gold-soft text-gold-dark' },
+}
+
+/** /admin/activity-logs — audited admin actions held in local demo state. */
+export function ActivityLogs() {
+  useDocumentTitle('Activity Logs')
+
+  const { activities } = useAdminStore()
+  const [search, setSearch] = useState('')
+  const [kind, setKind] = useState<'ALL' | ActivityItem['kind']>('ALL')
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return activities.filter((a) => {
+      const haystack = `${a.id} ${a.text} ${a.admin ?? ''} ${a.action ?? ''} ${a.entity ?? ''} ${a.description ?? ''}`.toLowerCase()
+      return (!q || haystack.includes(q)) && (kind === 'ALL' || a.kind === kind)
+    })
+  }, [activities, search, kind])
+
+  const columns: Array<Column<ActivityItem>> = [
+    {
+      key: 'id',
+      header: 'Activity ID',
+      sortValue: (a) => a.id,
+      render: (a) => <span className="whitespace-nowrap font-mono text-xs text-ink-soft">{a.id}</span>,
+    },
+    {
+      key: 'admin',
+      header: 'Admin Name',
+      sortValue: (a) => a.admin ?? 'System',
+      render: (a) => (
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest text-[11px] font-bold text-ivory">
+            {(a.admin ?? 'SY').slice(0, 2).toUpperCase()}
+          </span>
+          <span className="whitespace-nowrap text-[13px] text-ink-soft">{a.admin ?? 'System (demo)'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      sortValue: (a) => a.action ?? a.text,
+      render: (a) => {
+        const meta = KIND_META[a.kind]
+        const Icon = meta.icon
+        return (
+          <div className="flex items-center gap-2.5">
+            <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', meta.className)}>
+              <Icon className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <span className="block truncate text-[13px] font-semibold text-ink">
+                {a.action ?? a.text}
+              </span>
+              <span className="block text-[11px] text-ink-mute">{meta.label}</span>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'entity',
+      header: 'Related Entity',
+      sortValue: (a) => a.entity ?? '—',
+      render: (a) => (
+        <span className="block max-w-[16rem] truncate text-[12.5px] text-ink-soft">{a.entity ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'at',
+      header: 'Date & Time',
+      sortValue: (a) => a.at ?? a.time,
+      render: (a) => (
+        <span className="whitespace-nowrap tabular-nums text-[12.5px] text-ink-soft">
+          {a.at ?? a.time}
+        </span>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      render: (a) => (
+        <span className="block max-w-[22rem] text-[12.5px] leading-relaxed text-ink-mute">
+          {a.description ?? a.text}
+        </span>
+      ),
+    },
+  ]
+
+  return (
+    <>
+      <AdminPageHeader
+        title="Activity Logs"
+        description="Audited record of simulated admin actions — approvals, plan edits, subscription changes, featured decisions, settings updates and support resolutions."
+        actions={
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-ink-soft">
+            <History className="h-4 w-4 text-forest" aria-hidden />
+            {filtered.length} of {activities.length} activities
+          </span>
+        }
+      />
+
+      <DemoBanner message="every row is generated by local demo actions in this session — no server-side audit trail exists." />
+
+      <DataTable
+        columns={columns}
+        rows={filtered}
+        rowKey={(a) => a.id}
+        pageSize={10}
+        emptyTitle="No activities match"
+        emptyDescription="Try clearing the search or selecting a different action type."
+        toolbar={
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <SearchInput value={search} onChange={setSearch} placeholder="Search by admin, action or entity…" />
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterSelect
+                label="Type"
+                value={kind}
+                onChange={(value) => setKind(value as 'ALL' | ActivityItem['kind'])}
+                options={[
+                  { value: 'ALL', label: 'All actions' },
+                  { value: 'pg', label: 'PG' },
+                  { value: 'owner', label: 'Owner' },
+                  { value: 'student', label: 'Student' },
+                  { value: 'subscription', label: 'Subscription' },
+                  { value: 'support', label: 'Support' },
+                  { value: 'platform', label: 'Platform' },
+                ]}
+              />
+            </div>
+          </div>
+        }
+      />
+    </>
+  )
+}

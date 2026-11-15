@@ -5,23 +5,29 @@ import {
   BedDouble,
   Building2,
   ClipboardCheck,
+  CreditCard,
+  Crown,
   DoorOpen,
   GraduationCap,
   Layers,
   PencilLine,
   Plus,
+  Star,
   UserRound,
   Users,
   Wrench,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { aggregateRooms, useOwnerStore } from '../../context/OwnerStore'
+import { useAdminStore } from '../../context/AdminStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { BarChart, DonutChart } from '../../components/admin/Charts'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { EmptyState } from '../../components/common/EmptyState'
+import { formatINR } from '../../utils/format'
+import { cn } from '../../utils/cn'
 
 const ACTIVITY_ICONS = {
   admission: ClipboardCheck,
@@ -104,6 +110,41 @@ export function OwnerDashboard() {
     selectedPropertyId === 'ALL'
       ? 'all of your properties'
       : (scopedProperties[0]?.name ?? 'the selected property')
+
+  /* ------------------------------------------- Section 08 — business overview */
+  const { subscriptions, plans, payments, featuredRequests } = useAdminStore()
+
+  const mySubscription = useMemo(
+    () => subscriptions.find((s) => s.ownerName === 'Rakesh Sharma (demo)') ?? subscriptions[0],
+    [subscriptions],
+  )
+  const myPlan = useMemo(
+    () => plans.find((p) => p.id === mySubscription?.planId) ?? plans[0],
+    [plans, mySubscription],
+  )
+  const propertyLimit = myPlan?.propertyLimit ?? 0
+  const usedProperties = properties.length
+  const usagePct = propertyLimit > 0 ? Math.min(100, Math.round((usedProperties / propertyLimit) * 100)) : 0
+
+  const myInvoices = useMemo(
+    () =>
+      payments
+        .filter((p) => p.ownerName === 'Rakesh Sharma (demo)')
+        .sort((a, b) => b.paidOn.localeCompare(a.paidOn))
+        .slice(0, 3),
+    [payments],
+  )
+
+  const myFeatured = useMemo(
+    () =>
+      featuredRequests.filter(
+        (f) => f.pgName === 'Shree Shyam Boys PG' || f.ownerName === 'Rakesh Sharma (demo)',
+      ),
+    [featuredRequests],
+  )
+  const liveFeatured = myFeatured.find((f) => f.status === 'APPROVED' && f.listingStatus === 'ACTIVE')
+
+  const planBenefits = useMemo(() => (myPlan?.featureToggles ?? []).filter((f) => f.enabled), [myPlan])
 
   return (
     <>
@@ -193,6 +234,205 @@ export function OwnerDashboard() {
           />
         </section>
       </div>
+
+      {/* ------------------------------------- Section 08 — business overview */}
+      {mySubscription && myPlan && (
+        <section className="mt-6 overflow-hidden rounded-3xl border border-line bg-white shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-ivory/50 px-5 py-4 sm:px-6">
+            <h2 className="flex items-center gap-2 text-base sm:text-lg">
+              <Crown className="h-5 w-5 text-gold-dark" aria-hidden />
+              Business overview
+            </h2>
+            <Link
+              to="/owner/subscription"
+              className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-4 py-2 text-xs font-bold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory"
+            >
+              <CreditCard className="h-3.5 w-3.5" aria-hidden />
+              Manage subscription
+            </Link>
+          </div>
+
+          <div className="grid gap-5 p-5 sm:p-6 xl:grid-cols-3">
+            {/* Current plan + status + renewal */}
+            <div className="rounded-3xl bg-gradient-to-br from-forest to-forest-light p-5 text-ivory">
+              <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-gold">
+                <Crown className="h-3.5 w-3.5" aria-hidden />
+                Current plan
+              </p>
+              <p className="mt-2 text-2xl font-bold">{myPlan.name}</p>
+              <p className="mt-1 text-[12.5px] text-ivory/75">
+                {formatINR(mySubscription.cycle === 'YEARLY' ? myPlan.priceYearly : myPlan.priceMonthly)} per{' '}
+                {mySubscription.cycle === 'YEARLY' ? 'year' : 'month'} · demo billing
+              </p>
+
+              <div className="mt-3.5 flex flex-wrap gap-2">
+                <StatusBadge status={mySubscription.suspended ? 'PAUSED' : mySubscription.status} />
+                <span className="rounded-full bg-ivory/10 px-3 py-1 text-[11.5px] font-semibold">
+                  {mySubscription.id}
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-ivory/10 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gold">Start</p>
+                  <p className="mt-1 text-[13px] font-semibold tabular-nums">{mySubscription.startOn}</p>
+                </div>
+                <div className="rounded-2xl bg-ivory/10 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gold">Expiry</p>
+                  <p className="mt-1 text-[13px] font-semibold tabular-nums">{mySubscription.expiryOn}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[11.5px] leading-relaxed text-ivory/70">
+                Plan payments are separate from the rent you collect from students.
+              </p>
+            </div>
+
+            {/* Property usage + featured status */}
+            <div className="grid gap-5">
+              <div className="rounded-3xl border border-line bg-ivory/40 p-5">
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">
+                  <Layers className="h-4 w-4 text-gold-dark" aria-hidden />
+                  Property usage
+                </h3>
+                <p className="mt-2.5 text-3xl font-bold tabular-nums text-ink">
+                  {usedProperties}
+                  <span className="text-lg text-ink-mute"> / {propertyLimit}</span>
+                </p>
+                <p className="text-[12.5px] text-ink-mute">properties used of your plan limit</p>
+                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white">
+                  <div
+                    className={cn('h-full rounded-full transition-all', usagePct >= 100 ? 'bg-danger' : 'bg-forest')}
+                    style={{ width: `${usagePct}%` }}
+                    role="progressbar"
+                    aria-valuenow={usagePct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Property usage"
+                  />
+                </div>
+                <p className="mt-2 text-[11.5px] text-ink-soft">
+                  {usagePct >= 100
+                    ? 'Limit reached — upgrade to add more properties.'
+                    : `${propertyLimit - usedProperties} more available on ${myPlan.name}.`}
+                </p>
+              </div>
+
+              <div className="rounded-3xl border border-line bg-ivory/40 p-5">
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">
+                  <Star className="h-4 w-4 text-gold-dark" aria-hidden />
+                  Featured status
+                </h3>
+                {liveFeatured ? (
+                  <div className="mt-2.5">
+                    <StatusBadge status={liveFeatured.tier} />
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">
+                      {liveFeatured.pgName} is live with the Featured badge on Explore until{' '}
+                      <span className="font-semibold text-ink tabular-nums">{liveFeatured.endOn ?? '—'}</span>.
+                    </p>
+                  </div>
+                ) : myFeatured.length > 0 ? (
+                  <div className="mt-2.5">
+                    <StatusBadge status={myFeatured[0].status} />
+                    <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">
+                      Your featured request for {myFeatured[0].pgName} is{' '}
+                      {myFeatured[0].status === 'PENDING'
+                        ? 'awaiting admin approval (demo).'
+                        : myFeatured[0].status === 'REJECTED'
+                          ? `not approved — ${myFeatured[0].rejectReason ?? 'no reason recorded'}.`
+                          : 'no longer active.'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2.5 text-[12.5px] leading-relaxed text-ink-soft">
+                    No featured listing yet — approved Featured (₹299/mo) and Premium Featured (₹499/mo) placements
+                    show a badge on Explore (demo).
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* History, benefits, invoices */}
+            <div className="grid gap-5">
+              <div className="rounded-3xl border border-line bg-ivory/40 p-5">
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">Plan history</h3>
+                {mySubscription.events.length === 0 ? (
+                  <p className="text-[12.5px] text-ink-mute">No demo history yet.</p>
+                ) : (
+                  <ol className="space-y-2.5 border-l-2 border-line pl-4">
+                    {mySubscription.events.slice(0, 3).map((event) => (
+                      <li key={event.id} className="relative">
+                        <span
+                          className="absolute -left-[1.47rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-forest"
+                          aria-hidden
+                        />
+                        <p className="text-[12.5px] font-semibold leading-snug text-ink">{event.text}</p>
+                        <p className="text-[11px] text-ink-mute tabular-nums">{event.on}</p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-line bg-ivory/40 p-5">
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">
+                  Plan benefits ({planBenefits.length})
+                </h3>
+                <ul className="flex flex-wrap gap-2">
+                  {planBenefits.slice(0, 6).map((benefit) => (
+                    <li
+                      key={benefit.key}
+                      className="rounded-full border border-forest/25 bg-forest-soft px-3 py-1.5 text-[11.5px] font-semibold text-forest"
+                    >
+                      {benefit.label}
+                    </li>
+                  ))}
+                  {planBenefits.length === 0 && (
+                    <li className="text-[12.5px] text-ink-mute">No features recorded on this plan (demo).</li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="rounded-3xl border border-line bg-ivory/40 p-5">
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">
+                  Recent plan payments
+                </h3>
+                {myInvoices.length === 0 ? (
+                  <p className="text-[12.5px] text-ink-mute">No demo payments recorded.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {myInvoices.map((invoice) => (
+                      <li
+                        key={invoice.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-3.5 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-[12.5px] font-bold text-ink">{invoice.id}</p>
+                          <p className="text-[11px] text-ink-mute">
+                            {invoice.paidOn} · {invoice.method}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[13px] font-bold tabular-nums text-forest">
+                            {formatINR(invoice.amount)}
+                          </p>
+                          <StatusBadge status={invoice.status} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link
+                  to="/owner/subscription"
+                  className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-forest hover:text-gold-dark"
+                >
+                  View all invoices
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ----------------------------------------------- quick actions */}
       <section className="mt-6 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">

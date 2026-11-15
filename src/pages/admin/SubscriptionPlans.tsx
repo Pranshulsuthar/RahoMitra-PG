@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { Check, Layers, Pencil, Plus, Power, Trash2, Users, X } from 'lucide-react'
+import { Check, Layers, Pencil, Plus, Power, Trash2, Users } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { BillingCycle, PlanRecord } from '../../types/admin'

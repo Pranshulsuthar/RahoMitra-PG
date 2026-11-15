@@ -15,7 +15,6 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED: 'bg-ivory-deep/60 text-ink-soft border-line',
   CANCELLED: 'bg-danger-soft text-danger border-danger/30',
   TRIAL: 'bg-forest-soft text-forest border-forest/25',
-  PENDING: 'bg-gold-soft text-gold-dark border-gold/40',
   // Section 08 — featured listings, advertisements & platform tickets
   WAITING_USER: 'bg-gold-soft text-gold-dark border-gold/40',
   FEATURED: 'bg-gold-soft text-gold-dark border-gold/40',
