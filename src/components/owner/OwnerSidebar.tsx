@@ -4,6 +4,7 @@ import {
   BedDouble,
   Building2,
   ClipboardCheck,
+  CreditCard,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
@@ -45,7 +46,10 @@ const NAV_SECTIONS: Array<{
   },
   {
     label: 'Finance',
-    items: [{ to: '/owner/billing', label: 'Billing & Payments', icon: Receipt }],
+    items: [
+      { to: '/owner/billing', label: 'Billing & Payments', icon: Receipt },
+      { to: '/owner/subscription', label: 'Subscription & Plans', icon: CreditCard },
+    ],
   },
   {
     label: 'Communication',

@@ -5,14 +5,18 @@ import {
   Bell,
   Building2,
   ClipboardList,
+  Gauge,
   GraduationCap,
+  History,
   Layers,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Megaphone,
   Receipt,
   Repeat,
   Settings,
+  Star,
   Users,
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
@@ -24,13 +28,18 @@ const NAV_SECTIONS: Array<{
 }> = [
   {
     label: 'Overview',
-    items: [{ to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard }],
+    items: [
+      { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admin/platform', label: 'Platform Overview', icon: Gauge },
+    ],
   },
   {
     label: 'Listings',
     items: [
       { to: '/admin/pgs', label: 'PG Management', icon: Building2 },
       { to: '/admin/applications', label: 'Owner Applications', icon: ClipboardList },
+      { to: '/admin/featured-listings', label: 'Featured Listings', icon: Star },
+      { to: '/admin/advertisements', label: 'Advertisements', icon: Megaphone },
     ],
   },
   {
@@ -52,8 +61,11 @@ const NAV_SECTIONS: Array<{
     label: 'Engagement',
     items: [
       { to: '/admin/support', label: 'Complaints & Support', icon: LifeBuoy },
+      { to: '/admin/platform-support', label: 'Platform Support', icon: Layers },
       { to: '/admin/notifications', label: 'Notifications', icon: Bell },
       { to: '/admin/reports', label: 'Reports & Analytics', icon: BarChart3 },
+      { to: '/admin/platform-reports', label: 'Platform Reports', icon: Receipt },
+      { to: '/admin/activity-logs', label: 'Activity Logs', icon: History },
     ],
   },
   {

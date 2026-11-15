@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { usePGFilters } from '../hooks/usePGFilters'
+import { useAdminStore } from '../context/AdminStore'
 import type { PGCategory } from '../types'
 import { BUDGET_OPTIONS } from '../utils/constants'
 import { PageHeader } from '../components/common/PageHeader'
@@ -43,6 +44,18 @@ export function ExplorePGs() {
     activeFilterCount,
     total,
   } = usePGFilters(initial)
+
+  /* Section 08 — approved + active featured listings get a Featured badge. */
+  const { featuredRequests } = useAdminStore()
+  const featuredMap = useMemo(() => {
+    const map = new Map<string, 'FEATURED' | 'PREMIUM_FEATURED'>()
+    for (const request of featuredRequests) {
+      if (request.status === 'APPROVED' && request.listingStatus === 'ACTIVE') {
+        map.set(request.pgId, request.tier)
+      }
+    }
+    return map
+  }, [featuredRequests])
 
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
@@ -137,7 +150,7 @@ export function ExplorePGs() {
                   }
                 />
               ) : (
-                <PGGrid listings={results} />
+                <PGGrid listings={results} featuredMap={featuredMap} />
               )}
 
               <p className="mt-8 rounded-xl border border-dashed border-line bg-ivory/60 px-4 py-3 text-[12px] leading-relaxed text-ink-soft">

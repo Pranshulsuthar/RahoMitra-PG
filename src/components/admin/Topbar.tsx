@@ -16,6 +16,12 @@ import { cn } from '../../utils/cn'
 import { ConfirmDialog } from './ConfirmDialog'
 
 const TITLES: Array<[string, string, string]> = [
+  ['/admin/platform-support', 'Platform Support', 'Centralised support ticket console'],
+  ['/admin/platform-reports', 'Platform Reports', 'Owners, properties, revenue and subscriptions'],
+  ['/admin/platform', 'Platform Overview', 'SaaS health at a glance'],
+  ['/admin/activity-logs', 'Activity Logs', 'Audited admin actions (demo)'],
+  ['/admin/featured-listings', 'Featured Listings', 'Owner featured placement requests'],
+  ['/admin/advertisements', 'Advertisements', 'Platform ad campaigns (demo)'],
   ['/admin/dashboard', 'Dashboard', 'Platform overview at a glance'],
   ['/admin/pgs', 'PG Management', 'Moderate every registered property'],
   ['/admin/applications', 'Owner Applications', 'Review and decide new submissions'],

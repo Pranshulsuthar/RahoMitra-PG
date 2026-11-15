@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { AdminStoreProvider } from '../../context/AdminStore'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { ToastViewport } from './ToastViewport'
@@ -44,9 +43,7 @@ function AdminShell() {
 }
 
 export function AdminLayout() {
-  return (
-    <AdminStoreProvider>
-      <AdminShell />
-    </AdminStoreProvider>
-  )
+  // Section 08 — AdminStoreProvider now lives at the App root so the owner
+  // console can read the same plans / subscriptions / featured state.
+  return <AdminShell />
 }

@@ -9,13 +9,159 @@ export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type OwnerStatus = 'ACTIVE' | 'SUSPENDED'
 export type MembershipStatus = 'ACTIVE' | 'INACTIVE'
 export type BillingCycle = 'MONTHLY' | 'YEARLY'
-export type SubscriptionStatus = 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'CANCELLED'
+export type SubscriptionStatus =
+  | 'ACTIVE'
+  | 'EXPIRING_SOON'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'TRIAL'
+  | 'PENDING'
 export type PaymentStatus = 'SUCCESS' | 'PENDING' | 'FAILED' | 'REFUNDED'
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type NotificationCategory = 'PLATFORM' | 'SUBSCRIPTION' | 'FEATURE' | 'MAINTENANCE' | 'SUPPORT'
 export type NotificationAudience = 'ALL_OWNERS' | 'ALL_STUDENTS' | 'SELECTED_OWNERS'
 export type PlanStatus = 'ENABLED' | 'DISABLED'
+
+/* ------------------------------------------ Section 08 — SaaS platform */
+
+/** A single toggleable capability inside a subscription plan. */
+export interface PlanFeatureToggle {
+  key: string
+  label: string
+  enabled: boolean
+}
+
+/** One entry in a subscription's audit trail. */
+export interface SubscriptionEvent {
+  id: string
+  on: string
+  text: string
+}
+
+export type FeaturedTier = 'FEATURED' | 'PREMIUM_FEATURED'
+export type FeaturedRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+export type FeaturedListingStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED'
+
+export interface FeaturedRequest {
+  id: string
+  pgId: string
+  pgName: string
+  ownerName: string
+  tier: FeaturedTier
+  /** Proposed demo price in ₹ (299 / 499). */
+  amount: number
+  requestedOn: string
+  /** Admin decision — filled on approve/reject. */
+  status: FeaturedRequestStatus
+  /** Promotion duration in months (approved requests). */
+  durationMonths?: number
+  startOn?: string
+  endOn?: string
+  /** Live listing state after approval. */
+  listingStatus?: FeaturedListingStatus
+  rejectReason?: string
+  /** Demo payment record only — never a real transaction. */
+  history: Array<{ id: string; on: string; text: string }>
+}
+
+export type AdCategory =
+  | 'Tiffin Services'
+  | 'Laundry Services'
+  | 'Furniture'
+  | 'Internet Services'
+  | 'Local Transport'
+  | 'Other Relevant Services'
+export type AdPlacement = 'Explore Banner' | 'Listing Card' | 'Sidebar Rail' | 'Home Footer'
+export type AdStatus = 'ACTIVE' | 'PAUSED' | 'EXPIRED' | 'DRAFT'
+
+export interface Advertisement {
+  id: string
+  businessName: string
+  category: AdCategory
+  title: string
+  description: string
+  destinationUrl: string
+  /** Local object URL / data URL preview — never uploaded anywhere. */
+  imagePreview: string
+  targetCity: string
+  targetLocality: string
+  placement: AdPlacement
+  startOn: string
+  endOn: string
+  price: number
+  status: AdStatus
+  createdOn: string
+}
+
+export type PlatformTicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING_USER' | 'RESOLVED' | 'CLOSED'
+export type PlatformTicketCategory =
+  | 'Owner Account'
+  | 'Subscription'
+  | 'PG Listing'
+  | 'Student Account'
+  | 'Billing'
+  | 'Technical Issue'
+  | 'Other'
+
+export interface PlatformTicketReply {
+  id: string
+  author: string
+  role: 'Admin' | 'User'
+  text: string
+  on: string
+}
+
+export interface PlatformTicket {
+  id: string
+  submittedBy: string
+  userRole: 'Owner' | 'Student' | 'Guest'
+  category: PlatformTicketCategory
+  subject: string
+  description: string
+  priority: TicketPriority
+  status: PlatformTicketStatus
+  createdOn: string
+  assignedTo: string | null
+  replies: PlatformTicketReply[]
+}
+
+export interface PlatformSettings {
+  /* A. General */
+  platformName: string
+  hindiName: string
+  tagline: string
+  description: string
+  supportEmail: string
+  supportPhone: string
+  currency: string
+  country: string
+  timezone: string
+  /* B. Branding */
+  logoPreview: string
+  faviconPreview: string
+  brandColors: { forest: string; ivory: string; gold: string; dark: string }
+  websiteTitle: string
+  footerDescription: string
+  /* C. Business */
+  trialDurationDays: number
+  gracePeriodDays: number
+  featuredPrice: number
+  premiumFeaturedPrice: number
+  adPriceBase: number
+  /* D. Notifications */
+  notify: {
+    newOwnerApplication: boolean
+    newPgApproval: boolean
+    newStudentRegistration: boolean
+    newComplaint: boolean
+    subscriptionExpiry: boolean
+    featuredRequest: boolean
+  }
+  /* F. Maintenance (visual demo only) */
+  maintenanceMode: boolean
+  maintenanceMessage: string
+}
 
 export interface AdminPg {
   id: string
@@ -83,6 +229,12 @@ export interface PlanRecord {
   priceMonthly: number
   priceYearly: number
   status: PlanStatus
+  /** Maximum PG properties an owner on this plan may manage. */
+  propertyLimit: number
+  /** Billing duration offered for this plan. */
+  billing: BillingCycle
+  /** Toggleable capability list used by the plan editor. */
+  featureToggles: PlanFeatureToggle[]
   /** Marked when the plan was created in this demo session. */
   custom?: boolean
 }
@@ -96,6 +248,12 @@ export interface SubscriptionRecord {
   startOn: string
   expiryOn: string
   status: SubscriptionStatus
+  /** Demo subscription amount in ₹ (SaaS plan, not rent). */
+  amount: number
+  /** Suspended flag — shown as a chip, keeps the underlying status. */
+  suspended?: boolean
+  /** Demo audit trail for this subscription. */
+  events: SubscriptionEvent[]
 }
 
 export interface PaymentRecord {
@@ -142,7 +300,14 @@ export interface ActivityItem {
   id: string
   text: string
   time: string
-  kind: 'pg' | 'owner' | 'student' | 'subscription' | 'support'
+  kind: 'pg' | 'owner' | 'student' | 'subscription' | 'support' | 'platform'
+  /* ---- Section 08 rich fields (optional so Section 03 feeds keep working) ---- */
+  admin?: string
+  action?: string
+  entity?: string
+  description?: string
+  /** ISO date-time for the activity log table. */
+  at?: string
 }
 
 export interface AdminToast {

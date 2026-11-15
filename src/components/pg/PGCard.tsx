@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, MapPin } from 'lucide-react'
+import { ArrowRight, MapPin, Star } from 'lucide-react'
 import type { PG } from '../../types'
 import { formatINR } from '../../utils/format'
 import { availableFacilities } from './facilityMeta'
@@ -15,8 +15,16 @@ const categoryTone = {
 /**
  * Listing card — the WHOLE card is a single link to the details page,
  * so users can tap anywhere to open the property.
+ * Section 08: `featuredLabel` renders the gold Featured badge for
+ * approved + active featured listings (Explore page only).
  */
-export function PGCard({ pg }: { pg: PG }) {
+export function PGCard({
+  pg,
+  featuredLabel,
+}: {
+  pg: PG
+  featuredLabel?: 'FEATURED' | 'PREMIUM_FEATURED' | null
+}) {
   const facilities = availableFacilities(pg.facilities).slice(0, 5)
 
   return (
@@ -32,7 +40,21 @@ export function PGCard({ pg }: { pg: PG }) {
           className="transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-          <DemoBadge />
+          <span className="flex flex-col items-start gap-1.5">
+            <DemoBadge />
+            {featuredLabel && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] shadow-sm ${
+                  featuredLabel === 'PREMIUM_FEATURED'
+                    ? 'bg-forest text-gold'
+                    : 'bg-gold text-forest-dark'
+                }`}
+              >
+                <Star className="h-3 w-3" aria-hidden />
+                {featuredLabel === 'PREMIUM_FEATURED' ? 'Premium Featured' : 'Featured'}
+              </span>
+            )}
+          </span>
           <span
             className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] shadow-sm ${categoryTone[pg.category]}`}
           >

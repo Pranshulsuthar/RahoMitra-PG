@@ -26,12 +26,21 @@ export function PGGridSkeleton({ count = 6 }: { count?: number }) {
   )
 }
 
-export function PGGrid({ listings, isLoading }: { listings: PG[]; isLoading?: boolean }) {
+export function PGGrid({
+  listings,
+  isLoading,
+  featuredMap,
+}: {
+  listings: PG[]
+  isLoading?: boolean
+  /** pgId -> featured tier for approved + active listings (Section 08). */
+  featuredMap?: Map<string, 'FEATURED' | 'PREMIUM_FEATURED'>
+}) {
   if (isLoading) return <PGGridSkeleton count={6} />
   return (
     <div className={cn('grid gap-6 sm:grid-cols-2 xl:grid-cols-3')}>
       {listings.map((pg) => (
-        <PGCard key={pg.id} pg={pg} />
+        <PGCard key={pg.id} pg={pg} featuredLabel={featuredMap?.get(pg.id) ?? null} />
       ))}
     </div>
   )

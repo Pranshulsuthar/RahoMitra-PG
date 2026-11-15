@@ -27,6 +27,7 @@ const TITLES: Array<[string, string, string]> = [
   ['/owner/staff', 'Staff Management', 'Your on-ground team'],
   ['/owner/availability', 'Availability', 'Live bed availability across properties'],
   ['/owner/billing', 'Billing & Payments', 'Bills, invoices and payment records'],
+  ['/owner/subscription', 'Subscription & Plans', 'Your RahoMitra SaaS plan (demo)'],
   ['/owner/communication', 'Communication', 'Private chats with your students'],
   ['/owner/complaints', 'Complaints', 'Review and resolve student tickets'],
   ['/owner/announcements', 'Announcements', 'Notices for your PG students'],

@@ -18,8 +18,10 @@ import { ForgotPassword } from './pages/auth/ForgotPassword'
 import { ResetPassword } from './pages/auth/ResetPassword'
 
 // Section 03 — Super Admin dashboard
+import { AdminStoreProvider } from './context/AdminStore'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
+import { PlatformOverview } from './pages/admin/PlatformOverview'
 import { PGManagement } from './pages/admin/PGManagement'
 import { OwnerApplications } from './pages/admin/OwnerApplications'
 import { OwnerManagement } from './pages/admin/OwnerManagement'
@@ -27,9 +29,14 @@ import { StudentManagement } from './pages/admin/StudentManagement'
 import { SubscriptionPlans } from './pages/admin/SubscriptionPlans'
 import { Subscriptions } from './pages/admin/Subscriptions'
 import { PaymentRecords } from './pages/admin/PaymentRecords'
+import { FeaturedListings } from './pages/admin/FeaturedListings'
+import { Advertisements } from './pages/admin/Advertisements'
 import { Support } from './pages/admin/Support'
+import { PlatformSupport } from './pages/admin/PlatformSupport'
 import { Notifications } from './pages/admin/Notifications'
 import { Reports } from './pages/admin/Reports'
+import { PlatformReports } from './pages/admin/PlatformReports'
+import { ActivityLogs } from './pages/admin/ActivityLogs'
 import { AdminSettings } from './pages/admin/Settings'
 
 // Section 04 — PG Owner dashboard
@@ -45,6 +52,7 @@ import { Staff } from './pages/owner/Staff'
 import { Availability } from './pages/owner/Availability'
 import { OwnerProfile } from './pages/owner/OwnerProfile'
 import { OwnerSettings } from './pages/owner/OwnerSettings'
+import { OwnerSubscription } from './pages/owner/OwnerSubscription'
 
 // Section 05 — Student dashboard
 import { StudentLayout } from './components/student/StudentLayout'
@@ -71,9 +79,10 @@ import { StudentComplaints } from './pages/student/StudentComplaints'
 
 export default function App() {
   return (
-    <BillingStoreProvider>
-      <CommunicationStoreProvider>
-      <Routes>
+    <AdminStoreProvider>
+      <BillingStoreProvider>
+        <CommunicationStoreProvider>
+        <Routes>
       {/* ------------------------------------------- Section 01: public site */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
@@ -118,6 +127,7 @@ export default function App() {
         <Route path="announcements" element={<OwnerAnnouncements />} />
         <Route path="profile" element={<OwnerProfile />} />
         <Route path="settings" element={<OwnerSettings />} />
+        <Route path="subscription" element={<OwnerSubscription />} />
         <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
       </Route>
 
@@ -125,6 +135,7 @@ export default function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="platform" element={<PlatformOverview />} />
         <Route path="pgs" element={<PGManagement />} />
         <Route path="applications" element={<OwnerApplications />} />
         <Route path="owners" element={<OwnerManagement />} />
@@ -132,9 +143,14 @@ export default function App() {
         <Route path="plans" element={<SubscriptionPlans />} />
         <Route path="subscriptions" element={<Subscriptions />} />
         <Route path="payments" element={<PaymentRecords />} />
+        <Route path="featured-listings" element={<FeaturedListings />} />
+        <Route path="advertisements" element={<Advertisements />} />
         <Route path="support" element={<Support />} />
+        <Route path="platform-support" element={<PlatformSupport />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="platform-reports" element={<PlatformReports />} />
+        <Route path="activity-logs" element={<ActivityLogs />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
@@ -155,7 +171,8 @@ export default function App() {
         <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
       </Route>
       </Routes>
-      </CommunicationStoreProvider>
-    </BillingStoreProvider>
+        </CommunicationStoreProvider>
+      </BillingStoreProvider>
+    </AdminStoreProvider>
   )
 }
