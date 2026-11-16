@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { ApplicationStatus, OwnerApplication } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -14,7 +13,7 @@ import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 
 type PendingAction = { app: OwnerApplication; action: 'APPROVE' | 'REJECT' }
 
-/** /admin/applications — owner application review queue (demo state). */
+/** /admin/applications — owner application review queue. */
 export function OwnerApplications() {
   useDocumentTitle('Owner Applications')
 
@@ -53,10 +52,10 @@ export function OwnerApplications() {
     const { app, action } = pending
     if (action === 'APPROVE') {
       setApplicationStatus(app.id, 'APPROVED')
-      pushToast(`Application from “${app.ownerName}” approved (demo).`)
+      pushToast(`Application from “${app.ownerName}” approved.`)
     } else {
       setApplicationStatus(app.id, 'REJECTED', reason)
-      pushToast(`Application from “${app.ownerName}” rejected (demo).`, 'error')
+      pushToast(`Application from “${app.ownerName}” rejected.`, 'error')
     }
     setPending(null)
     setDetail(null)
@@ -142,7 +141,7 @@ export function OwnerApplications() {
     <>
       <AdminPageHeader
         title="Owner Applications"
-        description="Review complete owner submissions, approve new applications or reject them with a reason. All decisions are stored in local demo state."
+        description="Review complete owner submissions, approve new applications or reject them with a reason."
         actions={
           <div className="flex flex-wrap gap-2">
             {(['PENDING', 'APPROVED', 'REJECTED'] as const).map((key) => (
@@ -162,8 +161,6 @@ export function OwnerApplications() {
           </div>
         }
       />
-
-      <DemoBanner message="all applications are fictional submissions created to demonstrate the review workflow." />
 
       <DataTable
         columns={columns}
