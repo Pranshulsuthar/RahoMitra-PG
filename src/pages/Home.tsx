@@ -78,7 +78,7 @@ export function Home() {
   // Content reveals in sync with the logo-zoom intro (first load only).
   const introActive = !isIntroPlayed()
   const reveal = (delayMs: number) =>
-    introActive ? { animationDelay: `${delayMs}ms` } : undefined
+    introActive ? { style: { animationDelay: `${delayMs}ms` } } : undefined
 
   const [locality, setLocality] = useState('')
   const [type, setType] = useState('All')

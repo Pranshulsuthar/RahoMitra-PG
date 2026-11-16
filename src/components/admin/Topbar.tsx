@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
+  ArrowRight,
   Bell,
   ChevronDown,
   LogOut,
@@ -12,8 +13,8 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useAdminStore } from '../../context/AdminStore'
-import { cn } from '../../utils/cn'
 import { ConfirmDialog } from './ConfirmDialog'
+import { BellDropdown } from '../common/BellDropdown'
 
 const TITLES: Array<[string, string, string]> = [
   ['/admin/platform-support', 'Platform Support', 'Centralised support ticket console'],
@@ -46,8 +47,16 @@ interface TopbarProps {
 export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { pgs, owners, students, applications, notifications, markAllNotificationsRead, pushToast } =
-    useAdminStore()
+  const {
+    pgs,
+    owners,
+    students,
+    applications,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    pushToast,
+  } = useAdminStore()
 
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -62,6 +71,15 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
   }, [pathname])
 
   const unread = notifications.filter((n) => !n.read).length
+
+  /* Section 08 — where each notification category's "Open page" lands. */
+  const CATEGORY_ROUTE: Record<string, string> = {
+    PLATFORM: '/admin/platform',
+    SUBSCRIPTION: '/admin/subscriptions',
+    FEATURE: '/admin/featured-listings',
+    MAINTENANCE: '/admin/settings',
+    SUPPORT: '/admin/platform-support',
+  }
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -211,54 +229,37 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
             )}
           </button>
           {bellOpen && (
-            <div className="fade-scale-in absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-pop">
-              <div className="flex items-center justify-between border-b border-line bg-ivory/60 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
-                  Notifications
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    markAllNotificationsRead()
-                    pushToast('All demo notifications marked as read.', 'info')
-                  }}
-                  className="text-[11px] font-semibold text-forest hover:text-gold-dark"
+            <BellDropdown
+              items={notifications.slice(0, 6).map((n) => ({
+                id: n.id,
+                title: n.title,
+                body: n.message,
+                date: n.sentOn,
+                read: n.read,
+                chip: n.category,
+                to: CATEGORY_ROUTE[n.category] ?? '/admin/notifications',
+              }))}
+              onMarkAll={() => {
+                markAllNotificationsRead()
+                pushToast('All demo notifications marked as read.', 'info')
+              }}
+              onMarkRead={(id) => markNotificationRead(id, true)}
+              onOpen={(item) => {
+                setBellOpen(false)
+                navigate(item.to ?? '/admin/notifications')
+              }}
+              footer={
+                <Link
+                  to="/admin/notifications"
+                  onClick={() => setBellOpen(false)}
+                  className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-forest transition-colors hover:text-gold-dark"
                 >
-                  Mark all read
-                </button>
-              </div>
-              <ul className="max-h-72 overflow-y-auto">
-                {notifications.slice(0, 5).map((n) => (
-                  <li
-                    key={n.id}
-                    className="flex gap-3 border-b border-line/70 px-4 py-3 last:border-0"
-                  >
-                    <span
-                      className={cn(
-                        'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                        n.read ? 'bg-line' : 'bg-gold',
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-semibold text-ink">
-                        {n.title}
-                      </span>
-                      <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
-                        {n.message}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/admin/notifications"
-                onClick={() => setBellOpen(false)}
-                className="block bg-ivory/60 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-forest transition-colors hover:bg-ivory"
-              >
-                View notification history
-              </Link>
-            </div>
+                  View notification history
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              }
+              emptyText="You're all caught up"
+            />
           )}
         </div>
 

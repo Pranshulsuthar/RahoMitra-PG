@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
+  ArrowRight,
   Bell,
   ChevronDown,
   LogOut,
@@ -13,8 +14,8 @@ import {
 } from 'lucide-react'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
-import { cn } from '../../utils/cn'
 import { ConfirmDialog } from '../admin/ConfirmDialog'
+import { BellDropdown } from '../common/BellDropdown'
 import { PropertySwitcher } from './PropertySwitcher'
 import type { OwnerNotification } from '../../types/owner'
 
@@ -308,80 +309,51 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
             )}
           </button>
           {bellOpen && (
-            <div className="fade-scale-in absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(21rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-white shadow-pop">
-              <div className="flex items-center justify-between border-b border-line bg-ivory/60 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
-                  Notifications
-                </p>
-                <button
-                  type="button"
-                  onClick={markAllBell}
-                  className="text-[11px] font-semibold text-forest hover:text-gold-dark"
-                >
-                  Mark all read
-                </button>
-              </div>
-              <ul className="max-h-80 overflow-y-auto">
-                {bellRows.length === 0 && (
-                  <li className="px-4 py-6 text-center text-[12.5px] text-ink-mute">
-                    You're all caught up — no demo notifications.
-                  </li>
-                )}
-                {bellRows.map((n) => (
-                  <li
-                    key={`${n.source}-${n.id}`}
-                    className="group flex gap-3 border-b border-line/70 px-4 py-3 last:border-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => openRow(n)}
-                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
-                      aria-label={`Open notification: ${n.title}`}
-                    >
-                      <span
-                        className={cn(
-                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                          n.read ? 'bg-line' : 'bg-gold',
-                        )}
-                        aria-hidden
-                      />
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-semibold text-ink">
-                          {n.title}
-                        </span>
-                        <span className="mt-0.5 block line-clamp-2 text-[11.5px] leading-snug text-ink-mute">
-                          {n.body}
-                        </span>
-                        <span className="mt-1 block text-[10px] font-bold uppercase tracking-wider text-ink-mute/80">
-                          {n.date} · demo
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => dismissRow(n)}
-                      aria-label={`Clear notification: ${n.title}`}
-                      className="shrink-0 rounded-full p-1 text-ink-mute opacity-0 transition hover:bg-danger-soft hover:text-danger focus:opacity-100 group-hover:opacity-100"
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="bg-ivory/60 px-4 py-2.5 text-center text-[11px] text-ink-mute">
-                {pending > 0 ? (
+            <BellDropdown
+              items={bellRows.map((n) => ({
+                id: `${n.source}-${n.id}`,
+                title: n.title,
+                body: n.body,
+                date: n.date,
+                read: n.read,
+                chip: n.source === 'COMM' ? 'Message' : 'Notice',
+                to: n.to,
+              }))}
+              onMarkAll={markAllBell}
+              onMarkRead={(key) => {
+                const row = bellRows.find((r) => `${r.source}-${r.id}` === key)
+                if (!row) return
+                if (row.source === 'COMM') markCommRead(row.id)
+                else markNotificationRead(row.id, true)
+              }}
+              onDismiss={(key) => {
+                const row = bellRows.find((r) => `${r.source}-${r.id}` === key)
+                if (row) dismissRow(row)
+              }}
+              onOpen={(item) => {
+                const row = bellRows.find((r) => `${r.source}-${r.id}` === item.id)
+                setBellOpen(false)
+                if (row) openRow(row)
+                else if (item.to) navigate(item.to)
+              }}
+              footer={
+                pending > 0 ? (
                   <Link
                     to="/owner/admissions"
                     onClick={() => setBellOpen(false)}
-                    className="font-bold uppercase tracking-wider text-forest hover:text-gold-dark"
+                    className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-forest transition-colors hover:text-gold-dark"
                   >
-                    {pending} pending admission request{pending > 1 ? 's' : ''} → review now
+                    {pending} pending admission request{pending > 1 ? 's' : ''} · review now
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                   </Link>
                 ) : (
-                  'Demo notifications — nothing was sent to any device.'
-                )}
-              </div>
-            </div>
+                  <p className="text-[11px] text-ink-mute">
+                    Demo notifications — nothing was sent to any device.
+                  </p>
+                )
+              }
+              emptyText="You're all caught up"
+            />
           )}
         </div>
 
