@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { ImageWithFallback } from '../common/ImageWithFallback'
-import { DemoBadge } from '../common/Badge'
 import { cn } from '../../utils/cn'
 
 const AUTO_PLAY_MS = 2000
@@ -48,7 +47,7 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
   if (total === 0) {
     return (
       <div className="relative overflow-hidden rounded-3xl border border-line bg-ivory">
-        <ImageWithFallback src="" alt={`${alt} — demo image`} className="h-72 sm:h-[420px]" />
+        <ImageWithFallback src="" alt={`${alt} photograph`} className="h-72 sm:h-[420px]" />
       </div>
     )
   }
@@ -72,16 +71,12 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
             >
               <ImageWithFallback
                 src={image}
-                alt={`${alt} — demo image ${i + 1} of ${total}`}
+                alt={`${alt} image ${i + 1} of ${total}`}
                 loading={i === 0 ? 'eager' : 'lazy'}
                 className="h-full w-full"
               />
             </div>
           ))}
-        </div>
-
-        <div className="absolute left-4 top-4">
-          <DemoBadge />
         </div>
 
         {total > 1 && (

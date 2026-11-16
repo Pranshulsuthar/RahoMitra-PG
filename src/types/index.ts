@@ -60,10 +60,10 @@ export interface PG {
   roomTypes: RoomType[]
   foodAvailability: FoodAvailability
   rules: string[]
-  /** Demo availability status — not live inventory. */
+  /** Availability note or live occupancy hint */
   availabilityNote: string
-  /** Always true for current data: every listing is illustrative demo data. */
-  isDemo: true
+  /** Flag indicating whether this listing is illustrative demo data or live */
+  isDemo?: boolean
   /** null until a real owner shares verified contact details. */
   ownerContact: OwnerContact | null
 }

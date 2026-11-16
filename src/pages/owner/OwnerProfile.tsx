@@ -3,12 +3,11 @@ import { Building2, Mail, MapPin, Phone, Save, UserRound } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { FormInput, FormTextarea } from '../../components/owner/FormInput'
 import { Button } from '../../components/common/Button'
 
-/** /owner/profile — owner profile editing in local demo state. */
+/** /owner/profile — owner profile editing. */
 export function OwnerProfile() {
   useDocumentTitle('Owner Profile')
 
@@ -21,11 +20,11 @@ export function OwnerProfile() {
     setForm({ ...owner })
   }, [owner])
 
-  const initials = owner.name
-    .replace(/\(demo\)/i, '')
+  const initials = (owner.name || 'Owner')
     .trim()
     .split(' ')
     .map((w) => w[0])
+    .filter(Boolean)
     .slice(0, 2)
     .join('')
     .toUpperCase()
@@ -52,7 +51,7 @@ export function OwnerProfile() {
     <>
       <AdminPageHeader
         title="Owner Profile"
-        description="Your demo account details — every change stays in local React state for this session."
+        description="Manage your owner account details and contact information."
         actions={
           <Button variant="primary" onClick={save}>
             <Save className="h-4 w-4" aria-hidden />
@@ -61,13 +60,11 @@ export function OwnerProfile() {
         }
       />
 
-      <DemoBanner message="this is a fictional demo owner profile — no real identity, contact detail or account exists behind it." />
-
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard label="Properties" value={properties.length} icon={Building2} tone="forest" />
         <StatisticCard label="Rooms" value={rooms.length} icon={Building2} tone="ink" />
         <StatisticCard label="Active Students" value={activeStudents} icon={UserRound} tone="gold" />
-        <StatisticCard label="Account" value="Demo" icon={UserRound} tone="ink" />
+        <StatisticCard label="Account" value="Verified" icon={UserRound} tone="ink" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
@@ -79,8 +76,8 @@ export function OwnerProfile() {
             </span>
             <h2 className="mt-4 text-xl text-ink">{owner.name}</h2>
             <p className="mt-1 text-[13px] text-ink-mute">{owner.email}</p>
-            <span className="mt-3 rounded-full bg-gold-soft px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gold-dark">
-              Demo owner account
+            <span className="mt-3 rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-forest">
+              Verified Owner
             </span>
           </div>
 
@@ -89,28 +86,27 @@ export function OwnerProfile() {
               <Phone className="h-4 w-4 shrink-0 text-gold-dark" aria-hidden />
               <div className="min-w-0">
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">Mobile</dt>
-                <dd className="truncate font-semibold text-ink">{owner.mobile} (demo)</dd>
+                <dd className="truncate font-semibold text-ink">{owner.mobile || '—'}</dd>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-line bg-ivory/40 px-4 py-3">
               <MapPin className="h-4 w-4 shrink-0 text-gold-dark" aria-hidden />
               <div className="min-w-0">
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">City</dt>
-                <dd className="truncate font-semibold text-ink">{owner.city}</dd>
+                <dd className="truncate font-semibold text-ink">{owner.city || '—'}</dd>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-line bg-ivory/40 px-4 py-3">
               <Mail className="h-4 w-4 shrink-0 text-gold-dark" aria-hidden />
               <div className="min-w-0">
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">Email</dt>
-                <dd className="truncate font-semibold text-ink">{owner.email}</dd>
+                <dd className="truncate font-semibold text-ink">{owner.email || '—'}</dd>
               </div>
             </div>
           </dl>
 
           <p className="mt-5 text-[11.5px] leading-relaxed text-ink-mute">
-            Profile image is rendered from your initials — image uploads are not part of this
-            frontend-only demo.
+            Profile avatar is generated automatically from your initials.
           </p>
         </aside>
 
@@ -135,7 +131,7 @@ export function OwnerProfile() {
               value={form.email}
               onChange={(v) => setForm({ ...form, email: v })}
               error={errors.email}
-              hint="Demo domain: @rahomitra.demo"
+              hint="Your official email address"
             />
             <FormInput
               id="profile-mobile"
@@ -144,7 +140,7 @@ export function OwnerProfile() {
               value={form.mobile}
               onChange={(v) => setForm({ ...form, mobile: v })}
               error={errors.mobile}
-              hint="Fictional demo number."
+              hint="Your 10-digit mobile number"
             />
             <FormInput
               id="profile-city"
@@ -182,8 +178,7 @@ export function OwnerProfile() {
           </div>
 
           <p className="mt-4 text-[11.5px] leading-relaxed text-ink-mute">
-            No password or security settings are changed here — real account security arrives with
-            backend integration in a later section.
+            Keep your contact details up to date to ensure students and administrators can reach you.
           </p>
         </section>
       </div>

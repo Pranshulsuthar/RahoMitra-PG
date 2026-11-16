@@ -13,9 +13,13 @@ import {
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
-import { MONTHS, SERIES, PLAN_DISTRIBUTION } from '../../data/adminData'
+import {
+  getLastNMonths,
+  computeMonthlyRevenue,
+  computeMonthlyCounts,
+  computePlanDistribution,
+} from '../../utils/adminAnalytics'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatCard } from '../../components/admin/StatCard'
 import { BarChart, DonutChart, LineChart } from '../../components/admin/Charts'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -30,19 +34,20 @@ const ACTIVITY_ICONS: Record<string, typeof Users> = {
   platform: Star,
 }
 
-/** /admin/platform — Section 08 SaaS platform overview (illustrative demo). */
+/** /admin/platform — SaaS platform overview. */
 export function PlatformOverview() {
   useDocumentTitle('Platform Overview')
 
   const { owners, pgs, students, subscriptions, payments, featuredRequests, platformTickets, activities, plans } =
     useAdminStore()
 
+  const months = useMemo(() => getLastNMonths(6), [])
+
   const stats = useMemo(() => {
     const activeSubs = subscriptions.filter(
       (s) => s.status === 'ACTIVE' && !s.suspended,
     )
     const expiredSubs = subscriptions.filter((s) => s.status === 'EXPIRED')
-    /* MRR = sum of monthly-equivalent value of active subscriptions (demo). */
     const mrr = activeSubs.reduce(
       (sum, s) => sum + (s.cycle === 'YEARLY' ? Math.round(s.amount / 12) : s.amount),
       0,
@@ -65,12 +70,22 @@ export function PlatformOverview() {
   }, [owners, pgs, students, subscriptions, featuredRequests, platformTickets])
 
   const revenueData = useMemo(
-    () => MONTHS.map((m, i) => ({ label: m, value: SERIES.revenue[i] })),
-    [],
+    () => {
+      const rev = computeMonthlyRevenue(payments, months)
+      return months.map((m, i) => ({ label: m, value: rev[i] }))
+    },
+    [payments, months],
   )
   const ownerGrowthData = useMemo(
-    () => MONTHS.map((m, i) => ({ label: m, value: SERIES.ownerRegistrations[i] })),
-    [],
+    () => {
+      const counts = computeMonthlyCounts(owners, 'joinedOn', months)
+      return months.map((m, i) => ({ label: m, value: counts[i] }))
+    },
+    [owners, months],
+  )
+  const planDistribution = useMemo(
+    () => computePlanDistribution(subscriptions, plans),
+    [subscriptions, plans],
   )
 
   const recentPayments = useMemo(() => [...payments].slice(0, 5), [payments])
@@ -82,7 +97,7 @@ export function PlatformOverview() {
     <>
       <AdminPageHeader
         title="Platform Overview"
-        description="SaaS health of the RahoMitra demo platform — owners, listings, students, subscriptions, recurring revenue and featured placements."
+        description="SaaS health of the RahoMitra platform — owners, listings, students, subscriptions, recurring revenue and featured placements."
         actions={
           <>
             <Link
@@ -103,14 +118,12 @@ export function PlatformOverview() {
         }
       />
 
-      <DemoBanner message="every figure on this screen is computed from local illustrative demo records — not live business performance." />
-
       {/* ------------------------------------------------------- stat cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-8">
-        <StatCard label="Registered Owners" value={stats.totalOwners} icon={Users} hint="Demo accounts" />
+        <StatCard label="Registered Owners" value={stats.totalOwners} icon={Users} hint="Verified accounts" />
         <StatCard label="PG Properties" value={stats.totalPgs} icon={Building2} tone="ink" hint="Listings on record" />
-        <StatCard label="Registered Students" value={stats.totalStudents} icon={GraduationCap} tone="gold" hint="Demo accounts" />
-        <StatCard label="Active Subscriptions" value={stats.activeSubs} icon={Layers} hint="Paid demo plans" />
+        <StatCard label="Registered Students" value={stats.totalStudents} icon={GraduationCap} tone="gold" hint="Verified accounts" />
+        <StatCard label="Active Subscriptions" value={stats.activeSubs} icon={Layers} hint="Active plans" />
         <StatCard
           label="Expired Subscriptions"
           value={stats.expiredSubs}
@@ -118,14 +131,14 @@ export function PlatformOverview() {
           tone="danger"
           hint="Needs renewal"
         />
-        <StatCard label="Monthly Recurring Revenue" value={formatINR(stats.mrr)} icon={Receipt} tone="forest" hint="Illustrative MRR" />
+        <StatCard label="Monthly Recurring Revenue" value={formatINR(stats.mrr)} icon={Receipt} tone="forest" hint="Estimated MRR" />
         <StatCard label="Featured PG Listings" value={stats.featuredActive} icon={Star} tone="gold" hint="Approved + active" />
         <StatCard
           label="Platform Support Requests"
           value={stats.openTickets}
           icon={LifeBuoy}
           tone={stats.openTickets > 0 ? 'danger' : 'ink'}
-          hint={`${stats.totalTickets} total demo tickets`}
+          hint={`${stats.totalTickets} total tickets`}
         />
       </div>
 
@@ -135,14 +148,14 @@ export function PlatformOverview() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">Monthly subscription revenue</h2>
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              ₹ · demo
+              ₹
             </span>
           </div>
           <LineChart
             data={revenueData}
             color="#C49A52"
             valuePrefix="₹"
-            ariaLabel="Line chart of monthly subscription revenue (demo)"
+            ariaLabel="Line chart of monthly subscription revenue"
           />
         </section>
 
@@ -150,13 +163,13 @@ export function PlatformOverview() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">Subscription distribution</h2>
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              by plan · demo
+              by plan
             </span>
           </div>
           <DonutChart
-            data={PLAN_DISTRIBUTION}
+            data={planDistribution}
             centerLabel="SUBS"
-            ariaLabel="Donut chart of subscription distribution by plan (demo)"
+            ariaLabel="Donut chart of subscription distribution by plan"
           />
         </section>
 
@@ -164,13 +177,13 @@ export function PlatformOverview() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">Owner registration growth</h2>
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              new owners / month · demo
+              new owners / month
             </span>
           </div>
           <BarChart
             data={ownerGrowthData}
             color="#173D32"
-            ariaLabel="Bar chart of owner registration growth (demo)"
+            ariaLabel="Bar chart of owner registration growth"
           />
         </section>
       </div>
@@ -236,11 +249,6 @@ export function PlatformOverview() {
           </ul>
         </section>
       </div>
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <Star className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        Frontend-only demo — all figures derive from local sample data and reset on reload.
-      </p>
     </>
   )
 }

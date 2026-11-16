@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
+import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../utils/cn'
 import { ConfirmDialog } from '../admin/ConfirmDialog'
 import { PropertySwitcher } from './PropertySwitcher'
@@ -53,6 +54,7 @@ interface OwnerTopbarProps {
 export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: OwnerTopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const {
     owner,
     properties,
@@ -473,12 +475,13 @@ export function OwnerTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Owner
       <ConfirmDialog
         open={logoutOpen}
         title="Logout of Owner Console?"
-        message="This ends the demo owner session and returns you to the PG Owner Login screen. No real session exists — this is a frontend-only demo."
+        message="Are you sure you want to log out of the PG Owner console?"
         confirmLabel="Logout"
         danger
-        onConfirm={() => {
+        onConfirm={async () => {
           setLogoutOpen(false)
-          navigate('/login/owner')
+          await logout()
+          navigate('/login/owner', { replace: true })
         }}
         onCancel={() => setLogoutOpen(false)}
       />

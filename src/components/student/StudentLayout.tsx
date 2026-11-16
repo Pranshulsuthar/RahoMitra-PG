@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { StudentStoreProvider, useStudentStore } from '../../context/StudentStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
-import { DEMO_STUDENT_ID } from '../../data/communicationData'
+import { useAuth } from '../../context/AuthContext'
 import { StudentSidebar } from './StudentSidebar'
 import { StudentTopbar } from './StudentTopbar'
 import { ToastStack } from '../common/ToastStack'
@@ -20,21 +20,24 @@ function StudentToastViewport() {
  */
 function StudentShell() {
   const { pathname } = useLocation()
+  const { user } = useAuth()
   const { unreadCount } = useStudentStore()
   const { conversations, announcements } = useCommunicationStore()
+
+  const studentId = user?.id || ''
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   /* Section 07 — unread counts across notices + announcements + messages. */
   const myAnnouncementUnread = announcements.filter(
     (a) =>
       a.published &&
-      a.propertyId === 'pg-001' &&
-      (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
-      (a.expiresOn === '' || a.expiresOn >= '2026-05-14') &&
-      !a.readBy.includes(DEMO_STUDENT_ID),
+      (a.audience === 'ALL' || (studentId && a.audienceStudentIds.includes(studentId))) &&
+      (a.expiresOn === '' || a.expiresOn >= todayIso) &&
+      (!studentId || !a.readBy.includes(studentId)),
   ).length
   const combinedUnread = unreadCount + myAnnouncementUnread
   const unreadMessages =
-    conversations.find((c) => c.studentId === DEMO_STUDENT_ID)?.studentUnread ?? 0
+    conversations.find((c) => c.studentId === studentId)?.studentUnread ?? 0
 
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)

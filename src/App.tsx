@@ -9,7 +9,11 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy'
 import { Terms } from './pages/Terms'
 import { NotFound } from './pages/NotFound'
 
-// Section 02 — authentication
+// Authentication & Route Security
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute, PublicAuthRoute } from './components/auth/ProtectedRoute'
+
+// Section 02 — authentication pages
 import { AuthLanding } from './pages/auth/AuthLanding'
 import { StudentSignup } from './pages/auth/StudentSignup'
 import { OwnerSignup } from './pages/auth/OwnerSignup'
@@ -79,100 +83,179 @@ import { StudentComplaints } from './pages/student/StudentComplaints'
 
 export default function App() {
   return (
-    <AdminStoreProvider>
-      <BillingStoreProvider>
-        <CommunicationStoreProvider>
-        <Routes>
-      {/* ------------------------------------------- Section 01: public site */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/explore" element={<ExplorePGs />} />
-        <Route path="/pg/:slug" element={<PGDetails />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<Terms />} />
+    <AuthProvider>
+      <AdminStoreProvider>
+        <BillingStoreProvider>
+          <CommunicationStoreProvider>
+            <Routes>
+              {/* ------------------------------------------- Section 01: public site */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/explore" element={<ExplorePGs />} />
+                <Route path="/pg/:slug" element={<PGDetails />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<Terms />} />
 
-        {/* Legacy entry points — now lead into the new auth flows */}
-        <Route path="/owner/register" element={<Navigate to="/signup/owner" replace />} />
-        <Route path="/login" element={<Navigate to="/auth" replace />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
+                {/* Legacy entry points */}
+                <Route path="/owner/register" element={<Navigate to="/signup/owner" replace />} />
+                <Route path="/login" element={<Navigate to="/auth" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
 
-      {/* ----------------------------------------- Section 02: authentication */}
-      <Route path="/auth" element={<AuthLanding />} />
-      <Route path="/signup/student" element={<StudentSignup />} />
-      <Route path="/signup/owner" element={<OwnerSignup />} />
-      <Route path="/login/student" element={<RoleLogin role="student" />} />
-      <Route path="/login/owner" element={<RoleLogin role="owner" />} />
-      <Route path="/login/admin" element={<RoleLogin role="admin" />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+              {/* ----------------------------------------- Section 02: authentication */}
+              <Route
+                path="/auth"
+                element={
+                  <PublicAuthRoute>
+                    <AuthLanding />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/signup/student"
+                element={
+                  <PublicAuthRoute>
+                    <StudentSignup />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/signup/owner"
+                element={
+                  <PublicAuthRoute>
+                    <OwnerSignup />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/login/student"
+                element={
+                  <PublicAuthRoute>
+                    <RoleLogin role="student" />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/login/owner"
+                element={
+                  <PublicAuthRoute>
+                    <RoleLogin role="owner" />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/login/admin"
+                element={
+                  <PublicAuthRoute>
+                    <RoleLogin role="admin" />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicAuthRoute>
+                    <ForgotPassword />
+                  </PublicAuthRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicAuthRoute>
+                    <ResetPassword />
+                  </PublicAuthRoute>
+                }
+              />
 
-      {/* -------------------------------------- Section 04: PG Owner console */}
-      <Route path="/owner" element={<OwnerLayout />}>
-        <Route index element={<Navigate to="/owner/dashboard" replace />} />
-        <Route path="dashboard" element={<OwnerDashboard />} />
-        <Route path="properties" element={<Properties />} />
-        <Route path="properties/:id" element={<PropertyDetail />} />
-        <Route path="properties/:id/edit" element={<PropertyEdit />} />
-        <Route path="rooms" element={<Rooms />} />
-        <Route path="students" element={<Students />} />
-        <Route path="admissions" element={<Admissions />} />
-        <Route path="staff" element={<Staff />} />
-        <Route path="availability" element={<Availability />} />
-        <Route path="billing" element={<OwnerBilling />} />
-        <Route path="communication" element={<OwnerCommunication />} />
-        <Route path="complaints" element={<OwnerComplaints />} />
-        <Route path="announcements" element={<OwnerAnnouncements />} />
-        <Route path="profile" element={<OwnerProfile />} />
-        <Route path="settings" element={<OwnerSettings />} />
-        <Route path="subscription" element={<OwnerSubscription />} />
-        <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
-      </Route>
+              {/* -------------------------------------- Section 04: PG Owner console */}
+              <Route
+                path="/owner"
+                element={
+                  <ProtectedRoute allowedRole="owner">
+                    <OwnerLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/owner/dashboard" replace />} />
+                <Route path="dashboard" element={<OwnerDashboard />} />
+                <Route path="properties" element={<Properties />} />
+                <Route path="properties/:id" element={<PropertyDetail />} />
+                <Route path="properties/:id/edit" element={<PropertyEdit />} />
+                <Route path="rooms" element={<Rooms />} />
+                <Route path="students" element={<Students />} />
+                <Route path="admissions" element={<Admissions />} />
+                <Route path="staff" element={<Staff />} />
+                <Route path="availability" element={<Availability />} />
+                <Route path="billing" element={<OwnerBilling />} />
+                <Route path="communication" element={<OwnerCommunication />} />
+                <Route path="complaints" element={<OwnerComplaints />} />
+                <Route path="announcements" element={<OwnerAnnouncements />} />
+                <Route path="profile" element={<OwnerProfile />} />
+                <Route path="settings" element={<OwnerSettings />} />
+                <Route path="subscription" element={<OwnerSubscription />} />
+                <Route path="*" element={<Navigate to="/owner/dashboard" replace />} />
+              </Route>
 
-      {/* ------------------------------------- Section 03: Super Admin panel */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="platform" element={<PlatformOverview />} />
-        <Route path="pgs" element={<PGManagement />} />
-        <Route path="applications" element={<OwnerApplications />} />
-        <Route path="owners" element={<OwnerManagement />} />
-        <Route path="students" element={<StudentManagement />} />
-        <Route path="plans" element={<SubscriptionPlans />} />
-        <Route path="subscriptions" element={<Subscriptions />} />
-        <Route path="payments" element={<PaymentRecords />} />
-        <Route path="featured-listings" element={<FeaturedListings />} />
-        <Route path="advertisements" element={<Advertisements />} />
-        <Route path="support" element={<Support />} />
-        <Route path="platform-support" element={<PlatformSupport />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="platform-reports" element={<PlatformReports />} />
-        <Route path="activity-logs" element={<ActivityLogs />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-      </Route>
+              {/* ------------------------------------- Section 03: Super Admin panel */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRole="admin">
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="platform" element={<PlatformOverview />} />
+                <Route path="pgs" element={<PGManagement />} />
+                <Route path="applications" element={<OwnerApplications />} />
+                <Route path="owners" element={<OwnerManagement />} />
+                <Route path="students" element={<StudentManagement />} />
+                <Route path="plans" element={<SubscriptionPlans />} />
+                <Route path="subscriptions" element={<Subscriptions />} />
+                <Route path="payments" element={<PaymentRecords />} />
+                <Route path="featured-listings" element={<FeaturedListings />} />
+                <Route path="advertisements" element={<Advertisements />} />
+                <Route path="support" element={<Support />} />
+                <Route path="platform-support" element={<PlatformSupport />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="platform-reports" element={<PlatformReports />} />
+                <Route path="activity-logs" element={<ActivityLogs />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+              </Route>
 
-      {/* --------------------------------------- Section 05: Student console */}
-      <Route path="/student" element={<StudentLayout />}>
-        <Route index element={<Navigate to="/student/dashboard" replace />} />
-        <Route path="dashboard" element={<StudentDashboard />} />
-        <Route path="accommodation" element={<MyAccommodation />} />
-        <Route path="room" element={<MyRoom />} />
-        <Route path="profile" element={<StudentProfile />} />
-        <Route path="notices" element={<Notices />} />
-        <Route path="messages" element={<StudentMessages />} />
-        <Route path="complaints" element={<StudentComplaints />} />
-        <Route path="billing" element={<StudentBilling />} />
-        <Route path="support" element={<StudentSupport />} />
-        <Route path="settings" element={<StudentSettings />} />
-        <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
-      </Route>
-      </Routes>
-        </CommunicationStoreProvider>
-      </BillingStoreProvider>
-    </AdminStoreProvider>
+              {/* --------------------------------------- Section 05: Student console */}
+              <Route
+                path="/student"
+                element={
+                  <ProtectedRoute allowedRole="student">
+                    <StudentLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/student/dashboard" replace />} />
+                <Route path="dashboard" element={<StudentDashboard />} />
+                <Route path="accommodation" element={<MyAccommodation />} />
+                <Route path="room" element={<MyRoom />} />
+                <Route path="profile" element={<StudentProfile />} />
+                <Route path="notices" element={<Notices />} />
+                <Route path="messages" element={<StudentMessages />} />
+                <Route path="complaints" element={<StudentComplaints />} />
+                <Route path="billing" element={<StudentBilling />} />
+                <Route path="support" element={<StudentSupport />} />
+                <Route path="settings" element={<StudentSettings />} />
+                <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
+              </Route>
+            </Routes>
+          </CommunicationStoreProvider>
+        </BillingStoreProvider>
+      </AdminStoreProvider>
+    </AuthProvider>
   )
 }

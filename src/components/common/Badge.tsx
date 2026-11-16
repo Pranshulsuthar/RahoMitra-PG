@@ -3,20 +3,8 @@ import { Sparkles } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 /** Prominent marker used on every fictional listing / price. */
-export function DemoBadge({ className, compact = false }: { className?: string; compact?: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-forest-dark shadow-sm',
-        compact && 'px-2 py-0.5 text-[9px]',
-        className,
-      )}
-      title="Illustrative demo data — not a verified real-world listing"
-    >
-      <Sparkles className="h-3 w-3" aria-hidden />
-      Demo Listing
-    </span>
-  )
+export function DemoBadge(_props: { className?: string; compact?: boolean }) {
+  return null
 }
 
 type Tone = 'forest' | 'ivory' | 'outline' | 'gold'

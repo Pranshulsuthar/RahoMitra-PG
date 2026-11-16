@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -6,35 +6,27 @@ import {
   Building2,
   CalendarDays,
   ChevronRight,
+  Clock,
   DoorOpen,
   GraduationCap,
+  KeyRound,
   Megaphone,
   UserRound,
   Wallet,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useStudentStore } from '../../context/StudentStore'
 import {
-  IMPORTANT_DATES,
-  ROOMMATES,
-  STUDENT_ACTIVITIES,
-  STUDENT_ADMISSION,
-  STUDENT_PROPERTY,
-  STUDENT_ROOM,
-} from '../../data/studentData'
-import { roomOccupancy } from '../../types/owner'
+  fetchOwnAdmissionRequests,
+  fetchStudentAccommodation,
+  type StudentAccommodation,
+  type StudentAdmissionRequest,
+} from '../../api/student'
+import { JoinPGModal } from '../../components/student/JoinPGModal'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
-
-const ACTIVITY_ICONS = {
-  notice: Megaphone,
-  rent: Wallet,
-  room: BedDouble,
-  profile: UserRound,
-  support: GraduationCap,
-}
 
 const QUICK_ACTIONS = [
   { to: '/student/room', label: 'View my room', icon: BedDouble },
@@ -44,23 +36,67 @@ const QUICK_ACTIONS = [
   { to: '/student/support', label: 'Get help', icon: GraduationCap },
 ]
 
-/** /student/dashboard — premium student overview with clearly-labelled demo data. */
 export function StudentDashboard() {
   useDocumentTitle('Student Dashboard')
 
+  const { user } = useAuth()
   const { profile, notices, unreadCount } = useStudentStore()
 
-  const occupancy = useMemo(() => roomOccupancy(STUDENT_ROOM), [])
-  const recentNotices = useMemo(() => [...notices].slice(0, 4), [notices])
-  const firstName = profile.name.trim().split(' ')[0]
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
+  const [admissionRequests, setAdmissionRequests] = useState<StudentAdmissionRequest[]>([])
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const initials = profile.name
+  const loadLiveData = async () => {
+    try {
+      setLoading(true)
+      const [reqs, acc] = await Promise.allSettled([
+        fetchOwnAdmissionRequests(),
+        fetchStudentAccommodation(),
+      ])
+      if (reqs.status === 'fulfilled') {
+        setAdmissionRequests(reqs.value)
+      }
+      if (acc.status === 'fulfilled') {
+        setLiveAccommodation(acc.value)
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadLiveData()
+  }, [])
+
+  const currentPropertyName = liveAccommodation?.property.name ?? 'Not assigned'
+  const currentRoomNumber = liveAccommodation?.room.number ? `Room ${liveAccommodation.room.number}` : '—'
+  const currentBedLabel = liveAccommodation?.bed.label ? `Bed ${liveAccommodation.bed.label}` : '—'
+  const currentAdmissionDate = liveAccommodation?.admissionDate
+    ? new Date(liveAccommodation.admissionDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '—'
+  const currentRent = liveAccommodation?.room.rent ?? 0
+  const currentMembership = liveAccommodation ? 'ACTIVE' : 'PENDING'
+
+  const recentNotices = useMemo(() => [...notices].slice(0, 4), [notices])
+  const displayName = user?.fullName || profile.name || 'Student'
+  const firstName = displayName.trim().split(' ')[0]
+
+  const initials = displayName
     .trim()
     .split(' ')
     .map((w) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase()
+
+  const pendingRequest = admissionRequests.find((r) => r.status === 'PENDING')
 
   return (
     <>
@@ -69,53 +105,65 @@ export function StudentDashboard() {
         description="Here's your PG life at a glance — room, rent, notices and important dates."
         actions={
           <>
+            <button
+              type="button"
+              onClick={() => setJoinModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory shadow-[0_10px_24px_-14px_rgba(23,61,50,0.9)] transition-all hover:bg-forest-light"
+            >
+              <KeyRound className="h-4 w-4" aria-hidden />
+              Join PG with Code
+            </button>
             <Link
               to="/student/notices"
-              className="inline-flex items-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory shadow-[0_10px_24px_-14px_rgba(23,61,50,0.9)] transition-all hover:bg-forest-light"
+              className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-5 py-2.5 text-sm font-semibold text-forest transition-all hover:border-forest hover:bg-forest hover:text-ivory"
             >
               <Megaphone className="h-4 w-4" aria-hidden />
               Notices{unreadCount > 0 ? ` (${unreadCount})` : ''}
-            </Link>
-            <Link
-              to="/student/room"
-              className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-5 py-2.5 text-sm font-semibold text-forest transition-all hover:border-forest hover:bg-forest hover:text-ivory"
-            >
-              <BedDouble className="h-4 w-4" aria-hidden />
-              My Room
             </Link>
           </>
         }
       />
 
-      <DemoBanner message="every figure below is computed from local illustrative demo data for your sample allocation in Shree Shyam Boys PG — nothing here is live platform data." />
+      {pendingRequest && (
+        <div className="mb-6 rounded-2xl border border-gold/50 bg-gold-soft/40 p-4">
+          <div className="flex items-start gap-3">
+            <Clock className="mt-0.5 h-5 w-5 text-gold-dark shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-ink">
+                Admission Request Pending Owner Approval
+              </p>
+              <p className="mt-0.5 text-xs text-ink-mute">
+                You submitted an admission request for <strong className="text-ink">{pendingRequest.propertyName}</strong> ({pendingRequest.propertyLocality}, {pendingRequest.propertyCity}) using code <strong className="font-mono text-ink">{pendingRequest.code}</strong>. You will be assigned a bed once approved by the owner.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---------------------------------------------- welcome / profile */}
       <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-forest text-2xl font-bold text-ivory ring-4 ring-gold/40 sm:h-20 sm:w-20 sm:text-3xl">
-              {initials}
+              {initials || 'ST'}
             </span>
             <div className="min-w-0">
-              <h2 className="text-xl text-ink sm:text-2xl">{profile.name}</h2>
+              <h2 className="text-xl text-ink sm:text-2xl">{displayName}</h2>
               <p className="mt-0.5 truncate text-[13px] text-ink-mute">
-                {profile.email} · {profile.college}
+                {user?.email || profile.email} {user?.city ? `· ${user.city}` : profile.college ? `· ${profile.college}` : ''}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge status={STUDENT_ADMISSION.membership} />
-                <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-                  Demo student account
-                </span>
+                <StatusBadge status={currentMembership} />
               </div>
             </div>
           </div>
 
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
             {[
-              ['Current PG', STUDENT_PROPERTY.name],
-              ['Room', `Room ${STUDENT_ROOM.number}`],
-              ['Bed', `Bed ${STUDENT_ADMISSION.bedLabel}`],
-              ['Admitted on', STUDENT_ADMISSION.admissionDate],
+              ['Current PG', currentPropertyName],
+              ['Room', currentRoomNumber],
+              ['Bed', currentBedLabel],
+              ['Admitted on', currentAdmissionDate],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -135,140 +183,141 @@ export function StudentDashboard() {
       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard
           label="Monthly Rent"
-          value={`₹${STUDENT_ADMISSION.monthlyRent.toLocaleString('en-IN')}`}
+          value={currentRent > 0 ? `₹${currentRent.toLocaleString('en-IN')}` : '—'}
           icon={Wallet}
           tone="forest"
-          hint="Due by 5th · demo"
+          hint={liveAccommodation ? 'Active room rent' : 'Not enrolled'}
         />
         <StatisticCard
           label="Current Room"
-          value={STUDENT_ROOM.number}
+          value={liveAccommodation ? liveAccommodation.room.number : '—'}
           icon={BedDouble}
           tone="ink"
-          hint={`${STUDENT_ROOM.type} · Floor ${STUDENT_ROOM.floor}`}
+          hint={liveAccommodation ? `${liveAccommodation.room.type} · Floor ${liveAccommodation.room.floor}` : 'No room allocated'}
         />
         <StatisticCard
           label="Membership Status"
-          value={STUDENT_ADMISSION.membership}
+          value={currentMembership}
           icon={GraduationCap}
           tone="gold"
-          hint={`Since ${STUDENT_ADMISSION.admissionDate}`}
+          hint={liveAccommodation ? 'Active resident' : 'Pending enrollment'}
         />
         <StatisticCard
-          label="Next Billing Date"
-          value="01 Jun"
+          label="Admitted Since"
+          value={currentAdmissionDate}
           icon={CalendarDays}
           tone="ink"
-          hint={`${STUDENT_ADMISSION.nextBillingDate} · demo`}
+          hint={liveAccommodation ? liveAccommodation.property.name : 'Join PG with code'}
         />
       </div>
 
-      {/* ------------------------------------------- accommodation summary */}
-      <div className="mt-6 grid gap-5 xl:grid-cols-3">
-        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base sm:text-lg">Accommodation summary</h2>
+      {/* ------------------------------------------- accommodation summary or empty state */}
+      {!liveAccommodation && !loading && (
+        <div className="mt-6 rounded-3xl border border-dashed border-forest/30 bg-ivory/60 p-8 text-center sm:p-10">
+          <Building2 className="mx-auto mb-3 h-10 w-10 text-forest" />
+          <h3 className="font-display text-lg font-bold text-ink">No PG accommodation enrolled yet</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-soft">
+            To see your room, roommates, notices and rent invoices, ask your PG owner for an admission code and enter it below.
+          </p>
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setJoinModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-ivory shadow-card transition-colors hover:bg-forest-light"
+            >
+              <KeyRound className="h-4 w-4" />
+              Join PG with Admission Code
+            </button>
+          </div>
+        </div>
+      )}
+
+      {liveAccommodation && (
+        <div className="mt-6 grid gap-5 xl:grid-cols-3">
+          <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base sm:text-lg">Accommodation summary</h2>
+              <Link
+                to="/student/accommodation"
+                className="text-[12px] font-bold text-forest hover:text-gold-dark"
+              >
+                View all
+              </Link>
+            </div>
+            <dl className="space-y-2.5 text-[13px]">
+              {[
+                ['PG name', liveAccommodation.property.name],
+                ['Locality', `${liveAccommodation.property.locality}, ${liveAccommodation.property.city}`],
+                ['Address', liveAccommodation.property.address || '—'],
+                ['Room · Bed', `Room ${liveAccommodation.room.number} · Bed ${liveAccommodation.bed.label}`],
+                ['Room Type', `${liveAccommodation.room.type} sharing`],
+                ['Monthly Rent', `₹${liveAccommodation.room.rent.toLocaleString('en-IN')}`],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ivory/30 px-3.5 py-2.5"
+                >
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-ink-mute">
+                    {label}
+                  </dt>
+                  <dd className="truncate text-right font-semibold text-ink">{value}</dd>
+                </div>
+              ))}
+            </dl>
             <Link
               to="/student/accommodation"
-              className="text-[12px] font-bold text-forest hover:text-gold-dark"
+              className="mt-4 inline-flex items-center gap-2 text-[13px] font-bold text-forest hover:text-gold-dark"
             >
-              View all
+              Full PG details
+              <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
-          </div>
-          <dl className="space-y-2.5 text-[13px]">
-            {[
-              ['PG name', STUDENT_PROPERTY.name],
-              ['Type', `${STUDENT_PROPERTY.type === 'BOYS' ? 'Boys' : 'Girls'} PG`],
-              ['City', STUDENT_PROPERTY.city],
-              ['Room · Bed', `${STUDENT_ROOM.number} · ${STUDENT_ADMISSION.bedLabel}`],
-              ['Sharing', `${STUDENT_ROOM.type} sharing`],
-              ['Occupancy', `${occupancy.occupied}/${occupancy.capacity} beds occupied`],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ivory/30 px-3.5 py-2.5"
+          </section>
+
+          {/* Recent notices */}
+          <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6 xl:col-span-2">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base sm:text-lg">Recent notices</h2>
+              <Link
+                to="/student/notices"
+                className="text-[12px] font-bold text-forest hover:text-gold-dark"
               >
-                <dt className="text-[11px] font-bold uppercase tracking-wider text-ink-mute">
-                  {label}
-                </dt>
-                <dd className="truncate text-right font-semibold text-ink">{value}</dd>
+                View all
+              </Link>
+            </div>
+            {recentNotices.length > 0 ? (
+              <ul className="space-y-3">
+                {recentNotices.map((notice) => (
+                  <li
+                    key={notice.id}
+                    className="flex items-start justify-between gap-3 rounded-2xl border border-line bg-ivory/30 px-3.5 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2 truncate text-[13.5px] font-bold text-ink">
+                        {!notice.read && (
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full bg-gold"
+                            aria-label="Unread"
+                            aria-hidden
+                          />
+                        )}
+                        <span className="truncate">{notice.title}</span>
+                      </p>
+                      <p className="mt-1 text-[11.5px] text-ink-mute">
+                        {notice.category} · {notice.date}
+                      </p>
+                    </div>
+                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ink-mute" aria-hidden />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-2xl border border-line bg-ivory/30 p-6 text-center text-sm text-ink-mute">
+                No active announcements published yet.
               </div>
-            ))}
-          </dl>
-          <Link
-            to="/student/accommodation"
-            className="mt-4 inline-flex items-center gap-2 text-[13px] font-bold text-forest hover:text-gold-dark"
-          >
-            Full PG details
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </section>
-
-        {/* Recent notices */}
-        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base sm:text-lg">Recent notices</h2>
-            <Link
-              to="/student/notices"
-              className="text-[12px] font-bold text-forest hover:text-gold-dark"
-            >
-              View all
-            </Link>
-          </div>
-          <ul className="space-y-3">
-            {recentNotices.map((notice) => (
-              <li
-                key={notice.id}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-line bg-ivory/30 px-3.5 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="flex items-center gap-2 truncate text-[13.5px] font-bold text-ink">
-                    {!notice.read && (
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full bg-gold"
-                        aria-label="Unread"
-                        aria-hidden
-                      />
-                    )}
-                    <span className="truncate">{notice.title}</span>
-                  </p>
-                  <p className="mt-1 text-[11.5px] text-ink-mute">
-                    {notice.category} · {notice.date}
-                  </p>
-                </div>
-                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-ink-mute" aria-hidden />
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Upcoming important dates */}
-        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-          <h2 className="mb-4 text-base sm:text-lg">Upcoming important dates</h2>
-          <ul className="space-y-3">
-            {IMPORTANT_DATES.map((item) => (
-              <li key={item.id} className="flex gap-3">
-                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl bg-forest-soft text-forest">
-                  <span className="text-[10px] font-bold uppercase leading-none">
-                    {new Date(`${item.date}T00:00:00`).toLocaleDateString('en-GB', {
-                      month: 'short',
-                    })}
-                  </span>
-                  <span className="text-sm font-bold leading-tight">
-                    {new Date(`${item.date}T00:00:00`).getDate()}
-                  </span>
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[13.5px] font-bold text-ink">{item.label}</span>
-                  <span className="mt-0.5 block text-[11.5px] leading-snug text-ink-mute">
-                    {item.note}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+            )}
+          </section>
+        </div>
+      )}
 
       {/* --------------------------------------------------- quick actions */}
       <section className="mt-6 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
@@ -297,68 +346,13 @@ export function StudentDashboard() {
         </div>
       </section>
 
-      {/* -------------------------------------------- recent activity */}
-      <div className="mt-6 grid gap-5 xl:grid-cols-3">
-        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6 xl:col-span-2">
-          <h2 className="mb-4 text-base sm:text-lg">Recent activity</h2>
-          <ul className="space-y-3.5">
-            {STUDENT_ACTIVITIES.map((activity) => {
-              const Icon = ACTIVITY_ICONS[activity.kind]
-              return (
-                <li key={activity.id} className="flex gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-soft text-forest">
-                    <Icon className="h-3.5 w-3.5" aria-hidden />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[13px] leading-snug text-ink-soft">
-                      {activity.text}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-ink-mute">{activity.time}</span>
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-
-        {/* Roommates */}
-        <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-          <h2 className="mb-1 text-base sm:text-lg">Your roommates</h2>
-          <p className="mb-4 text-[12.5px] text-ink-mute">
-            Sharing room {STUDENT_ROOM.number} · demo records
-          </p>
-          <ul className="space-y-3">
-            <li className="flex items-center justify-between gap-3 rounded-2xl border border-gold/50 bg-gold-soft/50 px-3.5 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-[13.5px] font-bold text-ink">{profile.name} (you)</p>
-                <p className="text-[11.5px] text-ink-mute">
-                  Bed {STUDENT_ADMISSION.bedLabel} · {profile.college}
-                </p>
-              </div>
-              <DoorOpen className="h-4 w-4 shrink-0 text-gold-dark" aria-hidden />
-            </li>
-            {ROOMMATES.map((mate) => (
-              <li
-                key={mate.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ivory/30 px-3.5 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[13.5px] font-bold text-ink">{mate.name}</p>
-                  <p className="text-[11.5px] text-ink-mute">
-                    Bed {mate.bedLabel} · {mate.college}
-                  </p>
-                </div>
-                <UserRound className="h-4 w-4 shrink-0 text-ink-mute" aria-hidden />
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <GraduationCap className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        Frontend-only demo — all figures derive from local sample data and reset on reload.
-      </p>
+      <JoinPGModal
+        open={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+        onSuccess={() => {
+          loadLiveData()
+        }}
+      />
     </>
   )
 }

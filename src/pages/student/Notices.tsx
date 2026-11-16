@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -17,23 +17,21 @@ import {
   Zap,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useStudentStore } from '../../context/StudentStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
 import { NOTICE_CATEGORY_LABELS } from '../../types/student'
 import type { NoticeCategory } from '../../types/student'
 import { ANNOUNCEMENT_CATEGORY_LABELS, fmtDate } from '../../types/communication'
 import type { Announcement, AnnouncementCategory } from '../../types/communication'
-import { COMM_TODAY, DEMO_STUDENT_ID, commPropertyName } from '../../data/communicationData'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { Modal } from '../../components/admin/Modal'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { EmptyState } from '../../components/common/EmptyState'
 import { Button } from '../../components/common/Button'
 import { cn } from '../../utils/cn'
-
-const MY_PROPERTY_ID = 'pg-001'
 
 /* ------------------------------------------------------- icon / colour maps */
 
@@ -111,21 +109,33 @@ const READ_OPTIONS = [
 
 /**
  * /student/notices — the student's notice board. It unions the original
- * StudentStore notices with Section 07 owner announcements that are relevant
- * to the student's own PG (published, not expired, audience includes them).
- * Another PG's announcements are never rendered here.
+ * StudentStore notices with owner announcements relevant to the student's PG.
  */
 export function Notices() {
   useDocumentTitle('Notices')
+
+  const { user } = useAuth()
+  const currentStudentId = user?.id || ''
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const { notices, markNoticeRead, markAllNoticesRead, pushToast } = useStudentStore()
   const { announcements, markAnnouncementRead, markAllNotificationsRead } =
     useCommunicationStore()
 
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('ALL')
   const [readFilter, setReadFilter] = useState('ALL')
   const [detail, setDetail] = useState<BoardItem | null>(null)
+
+  useEffect(() => {
+    fetchStudentAccommodation()
+      .then((acc) => setLiveAccommodation(acc))
+      .catch(() => setLiveAccommodation(null))
+  }, [])
+
+  const propertyId = liveAccommodation?.property.id || ''
+  const propertyName = liveAccommodation?.property.name || 'My PG'
 
   /* announcements visible to THIS student only */
   const myAnnouncements = useMemo(
@@ -133,11 +143,11 @@ export function Notices() {
       announcements.filter(
         (a) =>
           a.published &&
-          a.propertyId === MY_PROPERTY_ID &&
-          (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
-          (a.expiresOn === '' || a.expiresOn >= COMM_TODAY),
+          (!propertyId || a.propertyId === propertyId) &&
+          (a.audience === 'ALL' || (currentStudentId && a.audienceStudentIds.includes(currentStudentId))) &&
+          (!a.expiresOn || a.expiresOn >= todayIso),
       ),
-    [announcements],
+    [announcements, propertyId, currentStudentId, todayIso],
   )
 
   const items = useMemo<BoardItem[]>(() => {
@@ -149,8 +159,8 @@ export function Notices() {
       date: n.date,
       category: `N:${n.category}`,
       read: n.read,
-      meta: NOTICE_META[n.category],
-      label: NOTICE_CATEGORY_LABELS[n.category],
+      meta: NOTICE_META[n.category] || NOTICE_META.GENERAL,
+      label: NOTICE_CATEGORY_LABELS[n.category] || n.category,
     }))
 
     const announcementItems: BoardItem[] = myAnnouncements.map((a) => ({
@@ -160,9 +170,9 @@ export function Notices() {
       description: a.message,
       date: a.publishedOn,
       category: `A:${a.category}`,
-      read: a.readBy.includes(DEMO_STUDENT_ID),
-      meta: ANNOUNCEMENT_META[a.category],
-      label: ANNOUNCEMENT_CATEGORY_LABELS[a.category],
+      read: currentStudentId ? a.readBy.includes(currentStudentId) : false,
+      meta: ANNOUNCEMENT_META[a.category] || ANNOUNCEMENT_META.GENERAL,
+      label: ANNOUNCEMENT_CATEGORY_LABELS[a.category] || a.category,
       priority: a.priority,
       expiresOn: a.expiresOn,
       full: a,
@@ -171,7 +181,7 @@ export function Notices() {
     return [...noticeItems, ...announcementItems].sort((a, b) =>
       a.date < b.date ? 1 : a.date > b.date ? -1 : 0,
     )
-  }, [notices, myAnnouncements])
+  }, [notices, myAnnouncements, currentStudentId])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -192,22 +202,24 @@ export function Notices() {
 
   const markRead = (item: BoardItem, read: boolean) => {
     if (item.kind === 'NOTICE') markNoticeRead(item.id, read)
-    else markAnnouncementRead(item.id, DEMO_STUDENT_ID)
-    if (read) pushToast('Notice marked as read (demo).', 'info')
+    else if (currentStudentId) markAnnouncementRead(item.id, currentStudentId)
+    if (read) pushToast('Notice marked as read.', 'info')
   }
 
   const markAll = () => {
     markAllNoticesRead()
-    myAnnouncements.forEach((a) => markAnnouncementRead(a.id, DEMO_STUDENT_ID))
-    markAllNotificationsRead('STUDENT', DEMO_STUDENT_ID)
-    pushToast('All demo notices marked as read.', 'info')
+    if (currentStudentId) {
+      myAnnouncements.forEach((a) => markAnnouncementRead(a.id, currentStudentId))
+      markAllNotificationsRead('STUDENT', currentStudentId)
+    }
+    pushToast('All notices marked as read.', 'info')
   }
 
   return (
     <>
       <AdminPageHeader
         title="Notices"
-        description="Your PG notice board — owner announcements for your PG plus classic notices, searchable and filterable (demo)."
+        description="Your PG notice board — announcements, rule updates and community notices."
         actions={
           <Button variant="outline" onClick={markAll} disabled={unreadCount === 0}>
             <CheckCheck className="h-4 w-4" aria-hidden />
@@ -215,8 +227,6 @@ export function Notices() {
           </Button>
         }
       />
-
-      <DemoBanner message="all notices are local illustrative demo records — nothing was pushed from a server and nothing is delivered to any device." />
 
       {/* ------------------------------------------------------ toolbar */}
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -246,7 +256,7 @@ export function Notices() {
           <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-gold px-2 text-[12px] font-bold text-forest-dark">
             {unreadCount}
           </span>
-          unread · {filtered.length} shown · demo
+          unread · {filtered.length} shown
         </span>
       </div>
 
@@ -256,8 +266,8 @@ export function Notices() {
           title="No notices found"
           description={
             hasFilters
-              ? 'No demo notices match your search or filters. Try clearing them.'
-              : 'No demo notices yet — check back later.'
+              ? 'No notices match your search or filters. Try clearing them.'
+              : 'No notices posted yet — check back later.'
           }
           icon={<Megaphone className="h-6 w-6" aria-hidden />}
           action={
@@ -333,7 +343,7 @@ export function Notices() {
                         {item.kind === 'ANNOUNCEMENT' && (
                           <>
                             <span aria-hidden>·</span>
-                            <span>{commPropertyName(item.full.propertyId)}</span>
+                            <span>{propertyName}</span>
                           </>
                         )}
                       </div>
@@ -374,9 +384,7 @@ export function Notices() {
         title={detail?.title ?? ''}
         subtitle={
           detail
-            ? `${detail.label} · ${fmtDate(detail.date)} · ${commPropertyName(
-                detail.kind === 'ANNOUNCEMENT' ? detail.full.propertyId : MY_PROPERTY_ID,
-              )}`
+            ? `${detail.label} · ${fmtDate(detail.date)} · ${propertyName}`
             : ''
         }
         onClose={() => setDetail(null)}
@@ -435,28 +443,31 @@ export function Notices() {
                 label="Expiry"
                 value={detail.kind === 'ANNOUNCEMENT' && detail.expiresOn ? fmtDate(detail.expiresOn) : 'No expiry'}
               />
-              <DetailRow label="PG" value={commPropertyName(MY_PROPERTY_ID)} />
+              <DetailRow label="PG" value={propertyName} />
               <DetailRow
                 label="Audience"
                 value={
                   detail.kind === 'ANNOUNCEMENT'
                     ? detail.full.audience === 'ALL'
-                      ? 'All students of this PG'
-                      : `${detail.full.audienceStudentIds.length} selected student(s)`
-                    : 'All students'
+                      ? 'All residents of this PG'
+                      : `${detail.full.audienceStudentIds.length} selected resident(s)`
+                    : 'All residents'
                 }
               />
             </dl>
-
-            <p className="mt-4 text-[11.5px] text-muted">
-              {detail.kind === 'ANNOUNCEMENT'
-                ? 'Published by your PG owner — demo notice, no real push or email was sent.'
-                : 'Classic demo notice from the notice board.'}
-            </p>
           </div>
         )}
       </Modal>
     </>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-white px-3.5 py-2.5">
+      <dt className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-mute">{label}</dt>
+      <dd className="mt-1 text-[13px] font-semibold text-ink">{value}</dd>
+    </div>
   )
 }
 

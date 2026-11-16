@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IMAGE_FALLBACK } from '../../data/pgData'
+import { IMAGE_FALLBACK } from '../../utils/constants'
 import { cn } from '../../utils/cn'
 
 interface ImageWithFallbackProps {

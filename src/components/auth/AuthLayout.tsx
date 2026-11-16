@@ -126,7 +126,7 @@ export function AuthLayout({ children, headerAction, size = 'md' }: AuthLayoutPr
         </main>
 
         <footer className="border-t border-line px-5 py-4 text-center text-[11px] text-ink-mute sm:px-8">
-          Demo build — simulated authentication only. Real sign-in arrives with backend integration.
+          &copy; {new Date().getFullYear()} RahoMitra. Secure authentication portal.
         </footer>
       </div>
     </div>

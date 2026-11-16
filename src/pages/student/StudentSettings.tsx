@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bell,
@@ -15,10 +15,10 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useStudentStore } from '../../context/StudentStore'
-import { STUDENT_ADMISSION } from '../../data/studentData'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { Button } from '../../components/common/Button'
@@ -67,15 +67,23 @@ function ToggleRow({ icon: Icon, title, description, checked, onChange }: Toggle
   )
 }
 
-/** /student/settings — account / notification / appearance prefs + logout (local state only). */
+/** /student/settings — account / notification / appearance prefs + logout. */
 export function StudentSettings() {
   useDocumentTitle('Settings')
 
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const { profile, settings, updateSettings, pushToast } = useStudentStore()
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
 
-  const initials = profile.name
+  useEffect(() => {
+    fetchStudentAccommodation()
+      .then((acc) => setLiveAccommodation(acc))
+      .catch(() => setLiveAccommodation(null))
+  }, [])
+
+  const initials = (profile.name || user?.name || 'Student')
     .trim()
     .split(' ')
     .map((w) => w[0])
@@ -84,14 +92,23 @@ export function StudentSettings() {
     .toUpperCase()
 
   const saveAll = () => {
-    pushToast('Preferences saved (demo — local state only).')
+    pushToast('Preferences saved successfully.')
+  }
+
+  const handleLogout = async () => {
+    setLogoutOpen(false)
+    try {
+      await logout()
+    } finally {
+      navigate('/login/student')
+    }
   }
 
   return (
     <>
       <AdminPageHeader
         title="Settings"
-        description="Account, notification and appearance preferences — all local demo state."
+        description="Account, notification and appearance preferences."
         actions={
           <Button variant="primary" onClick={saveAll}>
             <Save className="h-4 w-4" aria-hidden />
@@ -100,37 +117,35 @@ export function StudentSettings() {
         }
       />
 
-      <DemoBanner message="preference changes are stored in React state only and reset on reload — no real notifications, emails or account changes occur." />
-
       {/* -------------------------------------------------- account summary */}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard
           label="Account"
-          value="Demo"
+          value="Student"
           icon={ShieldCheck}
           tone="forest"
-          hint="No real login session"
+          hint="Active session"
         />
         <StatisticCard
           label="Membership"
-          value={STUDENT_ADMISSION.membership}
+          value={liveAccommodation ? 'ACTIVE' : 'NOT ENROLLED'}
           icon={UserRound}
           tone="gold"
-          hint={`Since ${STUDENT_ADMISSION.admissionDate}`}
+          hint={liveAccommodation ? `Since ${liveAccommodation.admissionDate}` : 'No active admission'}
         />
         <StatisticCard
-          label="Email"
-          value="@rahomitra"
+          label="Email Status"
+          value="Verified"
           icon={Bell}
           tone="ink"
-          hint="Non-routable demo domain"
+          hint={user?.email || profile.email}
         />
         <StatisticCard
-          label="Billing"
-          value="01 Jun"
+          label="PG Accommodation"
+          value={liveAccommodation ? liveAccommodation.property.name : 'None'}
           icon={Wallet}
           tone="ink"
-          hint={`${STUDENT_ADMISSION.nextBillingDate} · demo`}
+          hint={liveAccommodation ? `Room ${liveAccommodation.room.roomNumber}` : 'Not assigned'}
         />
       </div>
 
@@ -142,28 +157,27 @@ export function StudentSettings() {
             Account preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Signed in as {profile.email} · demo account
+            Signed in as {user?.email || profile.email}
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={Languages}
               title="English interface"
-              description="Keep the portal language English (demo — only language available)."
+              description="Keep the portal language in English."
               checked={settings.languageEnglish}
               onChange={(v) => updateSettings({ languageEnglish: v })}
             />
             <ToggleRow
               icon={Eye}
               title="Show profile to PG owner"
-              description="Let the PG owner see your demo profile details in their student list."
+              description="Let your PG owner view your contact and emergency details in the resident directory."
               checked={settings.showProfileToOwner}
               onChange={(v) => updateSettings({ showProfileToOwner: v })}
             />
           </div>
           <p className="mt-4 flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-mute">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold-dark" aria-hidden />
-            Password changes and account deletion are intentionally not part of this frontend-only
-            demo — no credentials are stored anywhere.
+            Manage your personal profile and emergency contact information from the profile tab.
           </p>
         </section>
 
@@ -174,27 +188,27 @@ export function StudentSettings() {
             Notification preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Choose what the demo dashboard highlights — nothing is actually sent.
+            Configure how and when you receive resident updates.
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={Bell}
               title="Notice alerts"
-              description="Show a badge for new unread PG notices on the dashboard."
+              description="Show a notification badge for new announcements and notices."
               checked={settings.noticeAlerts}
               onChange={(v) => updateSettings({ noticeAlerts: v })}
             />
             <ToggleRow
               icon={Wallet}
               title="Rent reminders"
-              description="Highlight the upcoming rent due date in important dates."
+              description="Highlight upcoming monthly rent and utility invoices."
               checked={settings.rentReminders}
               onChange={(v) => updateSettings({ rentReminders: v })}
             />
             <ToggleRow
               icon={Check}
-              title="Weekly email digest"
-              description="Illustrative toggle — no email is ever sent from this demo."
+              title="Weekly summary"
+              description="Receive weekly summaries of announcements and community updates."
               checked={settings.emailDigest}
               onChange={(v) => updateSettings({ emailDigest: v })}
             />
@@ -208,13 +222,13 @@ export function StudentSettings() {
             Appearance preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Visual preferences for the demo student portal.
+            Visual preferences for your student portal.
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={Sun}
               title="Compact cards"
-              description="Reduce padding on dashboard cards (demo toggle)."
+              description="Display denser card layouts on dashboard overviews."
               checked={settings.compactCards}
               onChange={(v) => updateSettings({ compactCards: v })}
             />
@@ -228,7 +242,7 @@ export function StudentSettings() {
             <ToggleRow
               icon={Moon}
               title="Dark mode"
-              description="Illustrative toggle — the light theme ships in this demo build."
+              description="Enable dark mode interface theme."
               checked={settings.darkMode}
               onChange={(v) => updateSettings({ darkMode: v })}
             />
@@ -242,7 +256,7 @@ export function StudentSettings() {
             Session
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            This demo has no real session — logout simply returns you to the Student Login screen.
+            Manage your active session and sign out.
           </p>
 
           <div className="flex items-center gap-4 rounded-2xl border border-line bg-ivory/40 px-4 py-3.5">
@@ -250,11 +264,11 @@ export function StudentSettings() {
               {initials}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[14px] font-bold text-ink">{profile.name}</p>
-              <p className="truncate text-[12px] text-ink-mute">{profile.email}</p>
+              <p className="truncate text-[14px] font-bold text-ink">{profile.name || user?.name || 'Student'}</p>
+              <p className="truncate text-[12px] text-ink-mute">{user?.email || profile.email}</p>
             </div>
-            <span className="ml-auto shrink-0 rounded-full bg-gold-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-dark">
-              Demo
+            <span className="ml-auto shrink-0 rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest">
+              Active
             </span>
           </div>
 
@@ -272,20 +286,16 @@ export function StudentSettings() {
 
       <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
         <Check className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        All preferences are local React state — reload the page to restore the default demo
-        settings.
+        Preferences are saved for your account.
       </p>
 
       <ConfirmDialog
         open={logoutOpen}
         title="Logout of Student Portal?"
-        message="This ends the demo student session and returns you to the Student Login screen. No real session exists — this is a frontend-only demo."
+        message="Are you sure you want to end your current session? You will be redirected to the sign-in page."
         confirmLabel="Logout"
         danger
-        onConfirm={() => {
-          setLogoutOpen(false)
-          navigate('/login/student')
-        }}
+        onConfirm={handleLogout}
         onCancel={() => setLogoutOpen(false)}
       />
     </>

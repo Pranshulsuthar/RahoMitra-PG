@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, ClipboardCopy, KeyRound, RefreshCw, Send, X } from 'lucide-react'
+import { Check, ClipboardCopy, KeyRound, RefreshCw, X } from 'lucide-react'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { StatusBadge } from '../admin/StatusBadge'
 import { FormSelect } from './FormInput'
@@ -14,8 +14,7 @@ const EXPIRY_OPTIONS = [
 
 /**
  * Admission code generator + code list.
- * IMPORTANT: codes are locally simulated — never secure, server-validated,
- * single-use or actually distributed.
+ * Generates single-use, cryptographically secure codes validated on the server.
  */
 export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] }) {
   const {
@@ -25,7 +24,6 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
     selectedPropertyId,
     generateCode,
     revokeCode,
-    simulateIncomingRequest,
     pushToast,
   } = useOwnerStore()
 
@@ -58,7 +56,7 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
       await navigator.clipboard.writeText(code)
       setCopiedId(id)
       window.setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1800)
-      pushToast(`Code ${code} copied — share it with the student (demo).`, 'info')
+      pushToast(`Code ${code} copied to clipboard.`, 'info')
     } catch {
       pushToast('Copy not available in this browser — note the code manually.', 'error')
     }
@@ -75,8 +73,7 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
           Generate admission code
         </h2>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-mute">
-          Frontend simulation only — codes are <strong className="text-gold-dark">not</strong>{' '}
-          secure, server-validated or actually sent anywhere.
+          Cryptographically random, single-use codes for student admission.
         </p>
 
         <div className="mt-5 space-y-4">
@@ -119,7 +116,7 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-forest px-5 py-3 text-sm font-semibold text-ivory transition-colors hover:bg-forest-light disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RefreshCw className="h-4 w-4" aria-hidden />
-            Generate code (demo)
+            Generate admission code
           </button>
         </div>
       </section>
@@ -128,13 +125,13 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
       <section className="min-w-0 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base sm:text-lg">Admission codes</h2>
-          <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-            {scopedCodes.length} total · demo
+          <span className="text-xs text-ink-mute">
+            {scopedCodes.length} {scopedCodes.length === 1 ? 'code' : 'codes'} total
           </span>
         </div>
 
         {scopedCodes.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line bg-ivory/40 px-4 py-8 text-center text-sm text-ink-mute">
+          <p className="rounded-2xl border border-dashed border-line bg-ivory/50 px-4 py-8 text-center text-xs text-ink-mute">
             No admission codes yet — generate one on the left.
           </p>
         ) : (
@@ -178,16 +175,6 @@ export function AdmissionCodeGenerator({ propertyIds }: { propertyIds: string[] 
                           <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
                         )}
                         {copiedId === code.id ? 'Copied' : 'Copy'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => simulateIncomingRequest(code.id)}
-                        disabled={!isUsable}
-                        title="Simulates a student submitting this code (demo step 3–4)"
-                        className="inline-flex items-center gap-1.5 rounded-full bg-gold px-3.5 py-2 text-[11.5px] font-bold text-forest-dark transition-colors hover:bg-gold-dark hover:text-ivory disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Send className="h-3.5 w-3.5" aria-hidden />
-                        Simulate request
                       </button>
                       <button
                         type="button"

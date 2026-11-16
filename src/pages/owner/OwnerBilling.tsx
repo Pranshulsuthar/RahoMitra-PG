@@ -15,7 +15,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useBillingStore } from '../../context/BillingStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
@@ -245,8 +244,8 @@ export function OwnerBilling() {
     if (result.ok) {
       pushToast(
         draft
-          ? `Draft bill saved for ${meta.studentName} (demo).`
-          : `Bill ${result.billId} generated for ${meta.studentName} (demo).`,
+          ? `Draft bill saved for ${meta.studentName}.`
+          : `Bill ${result.billId} generated for ${meta.studentName}.`,
       )
       setGenerateOpen(false)
       setEditingBill(null)
@@ -260,13 +259,13 @@ export function OwnerBilling() {
       pushToast(
         `Payment of ${formatINR(input.amount)} recorded — bill marked ${
           result.statusLabel ? BILL_STATUS_LABELS[result.statusLabel] : 'updated'
-        } (manual confirmation, demo).`,
+        } (manual confirmation).`,
       )
     }
     return result
   }
 
-  const propName = (id: string) => properties.find((p) => p.id === id)?.name ?? 'Demo PG'
+  const propName = (id: string) => properties.find((p) => p.id === id)?.name ?? 'PG'
 
   /* ------------------------------------------------------------ columns */
   const billColumns: Array<Column<RentBill>> = [
@@ -479,8 +478,6 @@ export function OwnerBilling() {
         }
       />
 
-      <DemoBanner message="every bill, payment and rupee figure below is illustrative demo data — RahoMitra never collects rent online; owners record offline receipts manually." />
-
       {/* ---------------------------------------------------- overview cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <StatisticCard
@@ -502,7 +499,7 @@ export function OwnerBilling() {
           value={formatINR(stats.received)}
           icon={Wallet}
           tone="forest"
-          hint="Manually recorded (demo)"
+          hint="Manually recorded receipts"
         />
         <StatisticCard
           label="Pending Amount"
@@ -549,9 +546,6 @@ export function OwnerBilling() {
             <section className="rounded-3xl border border-line bg-white p-5 shadow-card">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-base">Monthly revenue — billed</h2>
-                <span className="rounded-full bg-gold-soft px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider text-gold-dark">
-                  Demo
-                </span>
               </div>
               <p className="mb-3 text-[11.5px] text-ink-mute">
                 Property &amp; year filters apply · month filter applies to the table only.
@@ -566,12 +560,9 @@ export function OwnerBilling() {
             <section className="rounded-3xl border border-line bg-white p-5 shadow-card">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-base">Monthly revenue — received</h2>
-                <span className="rounded-full bg-forest-soft px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider text-forest">
-                  Demo
-                </span>
               </div>
               <p className="mb-3 text-[11.5px] text-ink-mute">
-                Amounts the owner has manually recorded as received.
+                Amounts manually recorded as received from residents.
               </p>
               {chartMonths.length === 0 ? (
                 <EmptyState title="No data" description="No bills match the current property and year filters." />
@@ -644,7 +635,7 @@ export function OwnerBilling() {
             rowKey={(b) => b.id}
             pageSize={8}
             emptyTitle="No bills found"
-            emptyDescription="No demo bills match the current filters — try clearing a filter or generate a new bill."
+            emptyDescription="No bills match the current filters — try clearing a filter or generate a new bill."
             toolbar={
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
@@ -665,7 +656,7 @@ export function OwnerBilling() {
                   ))}
                 </div>
                 <span className="text-[12px] font-semibold text-ink-mute">
-                  {filteredBills.length} of {bills.length} bills · demo data
+                  {filteredBills.length} of {bills.length} bills
                 </span>
               </div>
             }
@@ -704,7 +695,7 @@ export function OwnerBilling() {
             rowKey={(p) => p.id}
             pageSize={8}
             emptyTitle="No payments found"
-            emptyDescription="No recorded demo payments match this search — payments appear here after you use Record Payment."
+            emptyDescription="No recorded payments match this search — payments appear here after you record an offline payment receipt."
           />
         </>
       )}
@@ -713,7 +704,7 @@ export function OwnerBilling() {
       <Modal
         open={invoiceBill !== null}
         title={invoiceBill ? `Invoice · ${invoiceBill.id}` : 'Invoice'}
-        subtitle="RahoMitra rent invoice — demo data, print via your browser."
+        subtitle="RahoMitra rent invoice — print or save for your records."
         onClose={() => setInvoiceBill(null)}
         size="lg"
         footer={
@@ -772,7 +763,7 @@ export function OwnerBilling() {
       <Modal
         open={paymentDetail !== null}
         title="Payment Details"
-        subtitle="Manual offline receipt recorded by the owner (demo)."
+        subtitle="Manual offline receipt recorded by the owner."
         onClose={() => setPaymentDetail(null)}
         size="md"
         footer={
@@ -858,13 +849,13 @@ export function OwnerBilling() {
       <ConfirmDialog
         open={cancelTarget !== null}
         title={`Cancel bill ${cancelTarget?.id ?? ''}?`}
-        message="This removes the bill from local demo state. Only bills with no recorded payments can be cancelled — this cannot be undone in the demo session."
+        message="Are you sure you want to cancel this bill? Only bills with no recorded payments can be cancelled."
         confirmLabel="Cancel bill"
         danger
         onConfirm={() => {
           if (cancelTarget) {
             cancelBill(cancelTarget.id)
-            pushToast(`Bill ${cancelTarget.id} cancelled (demo).`, 'info')
+            pushToast(`Bill ${cancelTarget.id} cancelled.`, 'info')
           }
           setCancelTarget(null)
         }}

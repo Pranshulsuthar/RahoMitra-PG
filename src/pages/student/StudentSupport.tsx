@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ChevronDown,
@@ -12,25 +12,30 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
-import { SUPPORT_CONTACTS, STUDENT_FAQS } from '../../data/studentData'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
+import { CONTACT_DETAILS, STUDENT_FAQS } from '../../utils/constants'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { cn } from '../../utils/cn'
 
-/** /student/support — FAQ + fictional contacts + pointers to future modules. */
+/** /student/support — FAQ + owner and platform contact info. */
 export function StudentSupport() {
   useDocumentTitle('Help & Support')
 
   const [openFaq, setOpenFaq] = useState<string | null>(STUDENT_FAQS[0]?.id ?? null)
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
+
+  useEffect(() => {
+    fetchStudentAccommodation()
+      .then((acc) => setLiveAccommodation(acc))
+      .catch(() => setLiveAccommodation(null))
+  }, [])
 
   return (
     <>
       <AdminPageHeader
         title="Help & Support"
-        description="Frequently asked questions, your PG owner's demo contact details and where the future support modules will live."
+        description="Frequently asked questions, owner contact information, and platform support channels."
       />
-
-      <DemoBanner message="all contact details below are clearly fictional demo placeholders — no real inbox, phone line or support team exists behind this screen." />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         {/* ---------------------------------------------------------- FAQ */}
@@ -40,7 +45,7 @@ export function StudentSupport() {
             Frequently asked questions
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Quick answers for the demo student portal.
+            Common questions about your PG stay, rent, and facilities.
           </p>
 
           <ul className="space-y-3">
@@ -86,32 +91,38 @@ export function StudentSupport() {
           <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
             <h2 className="mb-1 flex items-center gap-2.5 text-base sm:text-lg">
               <UserRound className="h-4.5 w-4.5 text-gold-dark" aria-hidden />
-              PG Owner contact
+              {liveAccommodation ? `${liveAccommodation.property.name} Contact` : 'PG Contact'}
             </h2>
-            <p className="mb-4 text-[12.5px] text-ink-mute">Fictional demo contacts only.</p>
+            <p className="mb-4 text-[12.5px] text-ink-mute">
+              {liveAccommodation ? 'Direct contact details for your accommodation' : 'Not currently enrolled in a PG'}
+            </p>
             <ul className="space-y-3 text-[13px]">
-              {SUPPORT_CONTACTS.map((contact) => (
-                <li
-                  key={contact.label}
-                  className="flex items-center gap-3 rounded-xl border border-line bg-ivory/40 px-3.5 py-3"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-soft text-forest">
-                    {contact.label.includes('email') ? (
-                      <Mail className="h-4 w-4" aria-hidden />
-                    ) : contact.label === 'RahoMitra support' ? (
-                      <LifeBuoy className="h-4 w-4" aria-hidden />
-                    ) : (
-                      <Phone className="h-4 w-4" aria-hidden />
-                    )}
+              <li className="flex items-center gap-3 rounded-xl border border-line bg-ivory/40 px-3.5 py-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-soft text-forest">
+                  <Phone className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
+                    Owner Phone
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
-                      {contact.label}
-                    </span>
-                    <span className="block truncate font-semibold text-ink">{contact.value}</span>
+                  <span className="block truncate font-semibold text-ink">
+                    {liveAccommodation?.property.contactPhone || 'Contact manager via Messages'}
                   </span>
-                </li>
-              ))}
+                </span>
+              </li>
+              <li className="flex items-center gap-3 rounded-xl border border-line bg-ivory/40 px-3.5 py-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-soft text-forest">
+                  <Mail className="h-4 w-4" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
+                    Owner Email / In-App
+                  </span>
+                  <span className="block truncate font-semibold text-ink">
+                    {liveAccommodation?.property.contactEmail || 'Available via Messages tab'}
+                  </span>
+                </span>
+              </li>
             </ul>
           </section>
 
@@ -119,75 +130,73 @@ export function StudentSupport() {
           <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
             <h2 className="mb-4 flex items-center gap-2.5 text-base sm:text-lg">
               <Clock className="h-4.5 w-4.5 text-gold-dark" aria-hidden />
-              Support information
+              RahoMitra Helpdesk
             </h2>
             <ul className="space-y-2.5 text-[13px] text-ink-soft">
               <li className="flex gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
-                This build is frontend-only — no ticket is ever created or sent anywhere.
+                Email: {CONTACT_DETAILS.email}
               </li>
               <li className="flex gap-2.5">
                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
-                Demo response window shown for illustration only: 10 AM–7 PM, Mon–Sat.
+                Support hours: 10:00 AM – 7:00 PM, Monday to Saturday.
               </li>
               <li className="flex gap-2.5">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
-                Emails use the non-routable @rahomitra.demo domain — messages can never arrive.
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
+                Phone: {CONTACT_DETAILS.phone}
               </li>
             </ul>
           </section>
 
-          {/* Future module links */}
+          {/* Direct Actions */}
           <section className="rounded-3xl border border-dashed border-gold/60 bg-gold-soft/40 p-5 sm:p-6">
             <h2 className="mb-1 flex items-center gap-2.5 text-base sm:text-lg">
               <Megaphone className="h-4.5 w-4.5 text-gold-dark" aria-hidden />
-              Coming in future sections
+              Quick Resolution
             </h2>
             <p className="mb-4 text-[12.5px] leading-relaxed text-gold-dark">
-              These modules are planned and intentionally not built in Section 05.
+              Reach your PG owner or submit a maintenance issue directly.
             </p>
             <ul className="space-y-3">
-              <li className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3.5">
-                <span className="flex min-w-0 items-center gap-3">
-                  <MessageSquareWarning className="h-4.5 w-4.5 shrink-0 text-ink-mute" aria-hidden />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-bold text-ink">
-                      Communication &amp; Complaints
+              <li>
+                <Link
+                  to="/student/complaints"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3.5 hover:border-gold transition-colors"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <MessageSquareWarning className="h-4.5 w-4.5 shrink-0 text-forest" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-bold text-ink">
+                        Submit a Complaint
+                      </span>
+                      <span className="block text-[11.5px] text-ink-mute">Maintenance, Wi-Fi, food issues</span>
                     </span>
-                    <span className="block text-[11.5px] text-ink-mute">Chat + complaint raise</span>
                   </span>
-                </span>
-                <span className="shrink-0 rounded-full bg-ivory px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                  Section 07
-                </span>
+                  <span className="shrink-0 rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest">
+                    Open
+                  </span>
+                </Link>
               </li>
-              <li className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3.5">
-                <span className="flex min-w-0 items-center gap-3">
-                  <LifeBuoy className="h-4.5 w-4.5 shrink-0 text-ink-mute" aria-hidden />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[13.5px] font-bold text-ink">
-                      Support ticket desk
-                    </span>
-                    <span className="block text-[11.5px] text-ink-mute">
-                      Full helpdesk workflow
+              <li>
+                <Link
+                  to="/student/messages"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3.5 hover:border-gold transition-colors"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <LifeBuoy className="h-4.5 w-4.5 shrink-0 text-forest" aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13.5px] font-bold text-ink">
+                        Chat with Owner
+                      </span>
+                      <span className="block text-[11.5px] text-ink-mute">Direct 1:1 conversation</span>
                     </span>
                   </span>
-                </span>
-                <span className="shrink-0 rounded-full bg-ivory px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink-soft">
-                  Coming soon
-                </span>
+                  <span className="shrink-0 rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest">
+                    Chat
+                  </span>
+                </Link>
               </li>
             </ul>
-            <p className="mt-4 text-[11.5px] leading-relaxed text-gold-dark">
-              For now, use the demo contacts above — or head back to your{' '}
-              <Link
-                to="/student/dashboard"
-                className="font-bold underline underline-offset-2 hover:text-forest"
-              >
-                dashboard
-              </Link>
-              .
-            </p>
           </section>
         </aside>
       </div>

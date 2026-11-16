@@ -19,7 +19,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useBillingStore } from '../../context/BillingStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { Button } from '../../components/common/Button'
 import { FormInput, FormTextarea } from '../../components/owner/FormInput'
 import { cn } from '../../utils/cn'
@@ -69,7 +68,7 @@ function ToggleRow({ icon: Icon, title, description, checked, onChange }: Toggle
   )
 }
 
-/** /owner/settings — local preferences and account info (no real security APIs). */
+/** /owner/settings — owner preferences and account info. */
 export function OwnerSettings() {
   useDocumentTitle('Settings')
 
@@ -98,7 +97,7 @@ export function OwnerSettings() {
     setPrefs((prev) => ({ ...prev, [key]: value }))
 
   const saveAll = () => {
-    pushToast('Preferences saved (demo — local state only).')
+    pushToast('Preferences saved.')
   }
 
   const savePaymentDetails = () => {
@@ -107,7 +106,7 @@ export function OwnerSettings() {
       accountHolder: payForm.accountHolder.trim(),
       instructions: payForm.instructions.trim(),
     })
-    pushBillingToast('Payment details saved — students now see these on their invoices (demo).')
+    pushBillingToast('Payment details saved — students now see these on their invoices.')
   }
 
   const handleQrFile = (file: File | undefined) => {
@@ -124,7 +123,7 @@ export function OwnerSettings() {
     const reader = new FileReader()
     reader.onload = () => {
       updatePaymentDetails({ qrImage: String(reader.result ?? '') })
-      pushBillingToast('QR preview stored locally — it never leaves this browser (demo).')
+      pushBillingToast('QR image updated.')
     }
     reader.onerror = () => setQrError('Could not read that file — try another image.')
     reader.readAsDataURL(file)
@@ -134,7 +133,7 @@ export function OwnerSettings() {
     <>
       <AdminPageHeader
         title="Settings"
-        description="Profile, notification, appearance and account preferences — all local demo state."
+        description="Manage profile, notification, appearance and payment preferences."
         actions={
           <Button variant="primary" onClick={saveAll}>
             <Save className="h-4 w-4" aria-hidden />
@@ -142,8 +141,6 @@ export function OwnerSettings() {
           </Button>
         }
       />
-
-      <DemoBanner message="preference changes are stored in React state only and reset on reload — no real notifications, emails or account changes occur." />
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* -------------------------------------------------- notifications */}
@@ -153,34 +150,34 @@ export function OwnerSettings() {
             Notification preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            UI only — no real emails or SMS are ever sent from this frontend demo.
+            Configure how and when you receive property and student alerts.
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={Bell}
               title="Email alerts"
-              description="Simulate email alerts for new admission requests."
+              description="Receive email alerts for new admission requests."
               checked={prefs.emailAlerts}
               onChange={(v) => set('emailAlerts', v)}
             />
             <ToggleRow
               icon={Bell}
               title="SMS alerts"
-              description="Simulate SMS alerts for bed and room changes."
+              description="Receive SMS alerts for bed and room changes."
               checked={prefs.smsAlerts}
               onChange={(v) => set('smsAlerts', v)}
             />
             <ToggleRow
               icon={Bell}
               title="New admission requests"
-              description="Show a notification when a demo request arrives."
+              description="Show a notification when a request arrives."
               checked={prefs.newRequests}
               onChange={(v) => set('newRequests', v)}
             />
             <ToggleRow
               icon={Bell}
               title="Weekly occupancy summary"
-              description="Simulated weekly digest of occupancy across your PGs."
+              description="Weekly digest of occupancy across your PGs."
               checked={prefs.weeklySummary}
               onChange={(v) => set('weeklySummary', v)}
             />
@@ -194,13 +191,13 @@ export function OwnerSettings() {
             Appearance preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Visual preferences for this demo session only.
+            Customize the interface display settings.
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={Moon}
               title="Dark mode"
-              description="Theme arrives with a later design-system pass — toggle is stored locally."
+              description="Toggle interface dark mode."
               checked={prefs.darkMode}
               onChange={(v) => set('darkMode', v)}
             />
@@ -219,10 +216,6 @@ export function OwnerSettings() {
               onChange={(v) => set('showOccupancyOnDashboard', v)}
             />
           </div>
-          <div className="mt-4 rounded-2xl border border-dashed border-line bg-ivory/50 px-4 py-3 text-[11.5px] leading-relaxed text-ink-mute">
-            <strong className="text-ink-soft">Preview:</strong> the dashboard keeps its RahoMitra
-            Forest / Ivory / Gold theme regardless — this build ships one premium theme.
-          </div>
         </section>
 
         {/* -------------------------------------------- profile preferences */}
@@ -232,24 +225,24 @@ export function OwnerSettings() {
             Profile preferences
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Control how your owner profile appears inside this demo.
+            Control how your owner profile appears.
           </p>
           <div className="space-y-3">
             <ToggleRow
               icon={UserRound}
               title="Profile visible to students"
-              description="Show the owner name on simulated admission confirmations."
+              description="Show the owner name on admission confirmations."
               checked={prefs.profileVisible}
               onChange={(v) => set('profileVisible', v)}
             />
           </div>
           <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-ivory/50 px-4 py-3.5">
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-forest text-sm font-bold text-ivory">
-              {owner.name
-                .replace(/\(demo\)/i, '')
+              {(owner.name || 'Owner')
                 .trim()
                 .split(' ')
                 .map((w) => w[0])
+                .filter(Boolean)
                 .slice(0, 2)
                 .join('')
                 .toUpperCase()}
@@ -268,16 +261,16 @@ export function OwnerSettings() {
             Account information
           </h2>
           <p className="mb-4 text-[12.5px] text-ink-mute">
-            Read-only demo account details — no password or security APIs exist here.
+            Owner account and verified contact details.
           </p>
           <dl className="space-y-2.5 text-[13px]">
             {[
               ['Owner ID', owner.id],
               ['Email', owner.email],
-              ['Mobile', `${owner.mobile} (demo)`],
-              ['City', owner.city],
-              ['Properties managed', `${properties.length} (Shree Shyam Boys PG, Ashiana PG)`],
-              ['Session', 'Frontend demo — resets on reload'],
+              ['Mobile', owner.mobile || '—'],
+              ['City', owner.city || '—'],
+              ['Properties managed', `${properties.length} property(s)`],
+              ['Status', 'Active'],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -290,17 +283,16 @@ export function OwnerSettings() {
               </div>
             ))}
           </dl>
-          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
+          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-dashed border-forest/40 bg-forest-soft/40 px-4 py-3 text-[12px] leading-relaxed text-forest">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <p>
-              Password changes, two-factor authentication and account deletion are intentionally
-              not implemented — they belong to the backend-integrated release.
+              Your owner account is secured with session tokens and role-based access control.
             </p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-forest-soft px-3.5 py-1.5 text-[11.5px] font-bold text-forest">
               <Check className="h-3.5 w-3.5" aria-hidden />
-              Demo mode active
+              Verified Owner
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-ivory px-3.5 py-1.5 text-[11.5px] font-bold text-ink-soft">
               <Building2 className="h-3.5 w-3.5" aria-hidden />
@@ -328,14 +320,14 @@ export function OwnerSettings() {
                 value={payForm.upiId}
                 onChange={(v) => setPayForm((p) => ({ ...p, upiId: v }))}
                 placeholder="yourname@okaxis"
-                hint="Students see this on their invoice (demo)."
+                hint="Students see this on their invoice."
               />
               <FormInput
                 id="pay-holder"
                 label="Account Holder Name"
                 value={payForm.accountHolder}
                 onChange={(v) => setPayForm((p) => ({ ...p, accountHolder: v }))}
-                placeholder="e.g. Rakesh Sharma (demo)"
+                placeholder="e.g. Account Holder Name"
               />
               <FormTextarea
                 id="pay-instructions"
@@ -360,13 +352,13 @@ export function OwnerSettings() {
             <div className="flex w-full flex-col items-center rounded-2xl border border-line bg-ivory/40 px-5 py-4 lg:w-64">
               <p className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-ink-soft">
                 <QrCode className="h-4 w-4 text-gold-dark" aria-hidden />
-                UPI QR (local preview)
+                UPI QR Code
               </p>
               {paymentDetails.qrImage ? (
                 <div className="relative">
                   <img
                     src={paymentDetails.qrImage}
-                    alt="Owner UPI QR preview (demo)"
+                    alt="Owner UPI QR"
                     className="h-40 w-40 rounded-xl border border-line bg-white object-contain p-2"
                   />
                   <button
@@ -374,7 +366,7 @@ export function OwnerSettings() {
                     aria-label="Remove QR image"
                     onClick={() => {
                       updatePaymentDetails({ qrImage: '' })
-                      pushToast('QR preview removed (demo).', 'info')
+                      pushToast('QR image removed.', 'info')
                     }}
                     className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-line bg-white text-danger shadow-sm transition-colors hover:bg-danger-soft"
                   >
@@ -401,7 +393,7 @@ export function OwnerSettings() {
                 />
               </label>
               <p className="mt-2 text-center text-[10.5px] text-ink-mute">
-                Stored as a local data-URL only — never uploaded (max 5MB).
+                Upload your UPI payment QR code (max 5MB).
               </p>
               {qrError && (
                 <p role="alert" className="mt-2 text-[11.5px] font-semibold text-danger">

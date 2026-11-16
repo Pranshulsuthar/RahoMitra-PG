@@ -19,9 +19,8 @@ import {
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
-import { MONTHS, SERIES } from '../../data/adminData'
+import { getLastNMonths, computeMonthlyCounts } from '../../utils/adminAnalytics'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatCard } from '../../components/admin/StatCard'
 import { BarChart, LineChart } from '../../components/admin/Charts'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -36,11 +35,29 @@ const ACTIVITY_ICONS = {
   platform: Star,
 }
 
-/** /admin/dashboard — platform overview with clearly-labelled demo data. */
+/** /admin/dashboard — platform overview. */
 export function AdminDashboard() {
   useDocumentTitle('Admin Dashboard')
 
   const { pgs, applications, owners, students, subscriptions, activities } = useAdminStore()
+
+  const months = useMemo(() => getLastNMonths(6), [])
+
+  const pgChartData = useMemo(
+    () => {
+      const counts = computeMonthlyCounts(pgs, 'registeredOn', months)
+      return months.map((m, i) => ({ label: m, value: counts[i] }))
+    },
+    [pgs, months],
+  )
+
+  const subChartData = useMemo(
+    () => {
+      const counts = computeMonthlyCounts(subscriptions, 'startOn', months)
+      return months.map((m, i) => ({ label: m, value: counts[i] }))
+    },
+    [subscriptions, months],
+  )
 
   const stats = useMemo(() => {
     const approved = pgs.filter((p) => p.status === 'APPROVED').length
@@ -92,8 +109,6 @@ export function AdminDashboard() {
         }
       />
 
-      <DemoBanner message="all statistics below are illustrative samples — not live platform metrics." />
-
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-4">
         <StatCard label="Total PGs" value={stats.totalPgs} icon={Building2} tone="forest" hint="Registered listings" />
@@ -102,7 +117,7 @@ export function AdminDashboard() {
         <StatCard label="Rejected Applications" value={stats.rejected} icon={FileX2} tone="danger" hint="Closed submissions" trend="down" />
         <StatCard label="Total Owners" value={stats.totalOwners} icon={Users} tone="ink" hint="Registered PG owners" />
         <StatCard label="Total Students" value={stats.totalStudents} icon={GraduationCap} tone="ink" hint="Student accounts" />
-        <StatCard label="Active Subscriptions" value={stats.activeSubs} icon={Layers} tone="forest" hint="Paying demo plans" trend="up" />
+        <StatCard label="Active Subscriptions" value={stats.activeSubs} icon={Layers} tone="forest" hint="Active subscriptions" trend="up" />
         <StatCard label="Expiring Subscriptions" value={stats.expiringSubs} icon={Clock} tone="gold" hint="Renewal window" />
       </div>
 
@@ -112,15 +127,15 @@ export function AdminDashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base sm:text-lg">PG registrations</h2>
-              <p className="mt-0.5 text-xs text-ink-mute">New listings per month · demo data</p>
+              <p className="mt-0.5 text-xs text-ink-mute">New listings per month</p>
             </div>
             <span className="rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest">
-              2026
+              {new Date().getFullYear()}
             </span>
           </div>
           <BarChart
-            data={MONTHS.map((m, i) => ({ label: m, value: SERIES.pgRegistrations[i] }))}
-            ariaLabel="Bar chart of monthly PG registrations (demo data)"
+            data={pgChartData}
+            ariaLabel="Bar chart of monthly PG registrations"
           />
         </section>
 
@@ -128,15 +143,15 @@ export function AdminDashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base sm:text-lg">Monthly subscriptions</h2>
-              <p className="mt-0.5 text-xs text-ink-mute">Active owner subscriptions · demo data</p>
+              <p className="mt-0.5 text-xs text-ink-mute">Active owner subscriptions</p>
             </div>
             <span className="rounded-full bg-gold-soft px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gold-dark">
               Trend
             </span>
           </div>
           <LineChart
-            data={MONTHS.map((m, i) => ({ label: m, value: SERIES.monthlySubscriptions[i] }))}
-            ariaLabel="Line chart of monthly active subscriptions (demo data)"
+            data={subChartData}
+            ariaLabel="Line chart of monthly active subscriptions"
           />
         </section>
       </div>
@@ -208,7 +223,7 @@ export function AdminDashboard() {
         <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base sm:text-lg">Platform activities</h2>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-mute">Demo feed</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-mute">Platform feed</span>
           </div>
           <ul className="space-y-3.5">
             {activities.slice(0, 6).map((activity) => {

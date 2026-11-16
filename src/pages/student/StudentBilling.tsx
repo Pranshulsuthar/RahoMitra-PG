@@ -7,9 +7,9 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useBillingStore } from '../../context/BillingStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -26,7 +26,6 @@ import {
   formatDate,
   monthLabel,
 } from '../../types/billing'
-import { BILLING_TODAY, DEMO_STUDENT_ID, propertyName } from '../../data/billingData'
 import { formatINR } from '../../utils/format'
 import { cn } from '../../utils/cn'
 
@@ -42,6 +41,10 @@ const TABS: Array<{ value: string; label: string }> = [
 export function StudentBilling() {
   useDocumentTitle('My Bills')
 
+  const { user } = useAuth()
+  const currentStudentId = user?.id || ''
+  const todayIso = new Date().toISOString().slice(0, 10)
+
   const {
     studentBills,
     studentPayments,
@@ -55,16 +58,16 @@ export function StudentBilling() {
   const [invoiceBill, setInvoiceBill] = useState<RentBill | null>(null)
 
   const bills = useMemo(
-    () => studentBills(DEMO_STUDENT_ID),
-    [studentBills],
+    () => (currentStudentId ? studentBills(currentStudentId) : []),
+    [studentBills, currentStudentId],
   )
   const payments = useMemo(
-    () => studentPayments(DEMO_STUDENT_ID),
-    [studentPayments],
+    () => (currentStudentId ? studentPayments(currentStudentId) : []),
+    [studentPayments, currentStudentId],
   )
 
   /* --------------------------------------------------------- derived stats */
-  const currentMonth = BILLING_TODAY.slice(0, 7)
+  const currentMonth = todayIso.slice(0, 7)
   const currentBill = bills.find((b) => b.month === currentMonth)
 
   const outstanding = bills.reduce((sum, b) => {
@@ -111,8 +114,8 @@ export function StudentBilling() {
     {
       key: 'property',
       header: 'PG',
-      sortValue: (b) => propertyName(b.propertyId),
-      render: (b) => <span className="whitespace-nowrap">{propertyName(b.propertyId)}</span>,
+      sortValue: (b) => b.propertyId,
+      render: (b) => <span className="whitespace-nowrap">PG Accommodation</span>,
     },
     {
       key: 'total',
@@ -271,8 +274,6 @@ export function StudentBilling() {
         description="Your monthly rent invoices, dues and payment history."
       />
 
-      <DemoBanner message="every bill, amount and payment below is illustrative demo data. RahoMitra does not collect rent — pay your PG owner directly." />
-
       {/* ------------------------------------------------------ overview cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatisticCard
@@ -347,7 +348,7 @@ export function StudentBilling() {
             rowKey={(b) => b.id}
             pageSize={8}
             emptyTitle="No bills found"
-            emptyDescription="No demo bills match this filter."
+            emptyDescription="No rent bills have been generated for your account yet."
             toolbar={
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
@@ -368,7 +369,7 @@ export function StudentBilling() {
                   ))}
                 </div>
                 <span className="text-[12px] font-semibold text-ink-mute">
-                  {filteredBills.length} of {bills.length} bills · demo data
+                  {filteredBills.length} of {bills.length} bills
                 </span>
               </div>
             }
@@ -377,9 +378,7 @@ export function StudentBilling() {
           <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3.5 text-[12.5px] leading-relaxed text-gold-dark">
             <Wallet className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <p>
-              <strong>How to pay:</strong> please pay your rent directly to your PG owner using the
-              payment method shared by them. RahoMitra does not process rent online — your payment
-              status is updated after the owner confirms receipt.
+              <strong>Payment note:</strong> please pay your rent directly to your PG owner using cash, UPI, or net banking. RahoMitra does not collect rent online — your payment records are updated by your PG owner once received.
             </p>
           </div>
         </>
@@ -398,7 +397,7 @@ export function StudentBilling() {
       <Modal
         open={invoiceBill !== null}
         title={invoiceBill ? `Invoice · ${invoiceBill.id}` : 'Invoice'}
-        subtitle="RahoMitra rent invoice — demo data, print via your browser."
+        subtitle="RahoMitra rent invoice — print or save for your records."
         onClose={() => setInvoiceBill(null)}
         size="lg"
         footer={
@@ -423,13 +422,6 @@ export function StudentBilling() {
           />
         )}
       </Modal>
-
-      {bills.length === 0 && (
-        <EmptyState
-          title="No bills yet"
-          description="Once your PG owner generates a monthly bill, it will show up here."
-        />
-      )}
     </>
   )
 }

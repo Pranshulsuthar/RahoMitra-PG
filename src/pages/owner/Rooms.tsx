@@ -4,7 +4,6 @@ import { BedDouble, Plus } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
@@ -210,8 +209,6 @@ export function Rooms() {
         }
       />
 
-      <DemoBanner message="rooms, beds and their statuses are local demo records — capacity rules are enforced in the UI so students can never exceed free beds." />
-
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard label="Rooms" value={totals.totalRooms} icon={BedDouble} tone="ink" />
         <StatisticCard label="Total Beds" value={totals.totalBeds} icon={BedDouble} tone="ink" />
@@ -238,7 +235,7 @@ export function Rooms() {
       {filtered.length === 0 ? (
         <EmptyState
           title="No rooms found"
-          description="No demo rooms match the current filters for your properties. Adjust the filters or add a new room."
+          description="No rooms match the current filters. Adjust the filters or add a new room."
           icon={<BedDouble className="h-6 w-6" aria-hidden />}
           action={
             <button
@@ -269,7 +266,7 @@ export function Rooms() {
       <Modal
         open={addOpen}
         title="Add Room"
-        subtitle="New rooms start with all beds AVAILABLE — demo local state only."
+        subtitle="Configure room number, type, rent and floor."
         onClose={() => setAddOpen(false)}
         footer={
           <>
@@ -427,8 +424,8 @@ export function Rooms() {
         title={`Delete Room ${deleting?.number ?? ''}?`}
         message={
           <>
-            This removes the room and its beds from local demo state. If any active student is
-            still allocated here, the deletion will be blocked.
+            Are you sure you want to delete this room and its beds? If any active resident is
+            still allocated here, deletion will be blocked.
           </>
         }
         confirmLabel="Delete room"

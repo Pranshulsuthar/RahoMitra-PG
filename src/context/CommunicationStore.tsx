@@ -1,13 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import {
-  COMM_TODAY,
-  SEED_COMM_NOTIFICATIONS,
-  SEED_COMPLAINTS,
-  SEED_CONVERSATIONS,
-  SEED_MESSAGES,
-  SEED_ANNOUNCEMENTS,
-} from '../data/communicationData'
 import type {
   Announcement,
   AnnouncementCategory,
@@ -23,16 +15,27 @@ import type {
 import { COMPLAINT_STATUS_LABELS } from '../types/communication'
 import { ToastStack } from '../components/common/ToastStack'
 import type { ToastItem } from '../components/common/ToastStack'
-
-/**
- * ---------------------------------------------------------------------------
- * SECTION 07 — single in-memory demo store for Communication & Complaints.
- * Shared by the owner console and the student portal so a message sent by the
- * student instantly appears for the owner (and vice versa), and every status
- * change the owner makes is reflected on the student's complaint screen.
- * Every mutation is local React state only — reload to restore the seeds.
- * ---------------------------------------------------------------------------
- */
+import { useAuth } from './AuthContext'
+import {
+  fetchAnnouncements,
+  fetchComplaints,
+  fetchConversations,
+  fetchMessages,
+  fetchNotifications,
+  markAllNotificationsReadApi,
+  markAnnouncementReadApi,
+  markConversationAsRead,
+  markNotificationReadApi,
+  clearNotificationApi,
+  saveAnnouncementApi,
+  sendChatMessage,
+  setComplaintPriorityApi,
+  submitComplaintApi,
+  toggleAnnouncementPublishedApi,
+  deleteAnnouncementApi,
+  updateComplaintStatusApi,
+  addComplaintCommentApi,
+} from '../api/communication'
 
 export interface ComplaintSubmitInput {
   propertyId: string
@@ -103,6 +106,7 @@ interface CommunicationStoreValue {
   toasts: ToastItem[]
   pushToast: (message: string, tone?: ToastItem['tone']) => void
   dismissToast: (id: number) => void
+  refresh: () => Promise<void>
 }
 
 const CommunicationStoreContext = createContext<CommunicationStoreValue | null>(null)
@@ -110,20 +114,22 @@ const CommunicationStoreContext = createContext<CommunicationStoreValue | null>(
 const uid = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
-/** HH:mm clock used for demo timestamps of new records. */
 function nowAt(): string {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+function getTodayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export function CommunicationStoreProvider({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] = useState<Conversation[]>(SEED_CONVERSATIONS)
-  const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES)
-  const [complaints, setComplaints] = useState<Complaint[]>(SEED_COMPLAINTS)
-  const [announcements, setAnnouncements] = useState<Announcement[]>(SEED_ANNOUNCEMENTS)
-  const [notifications, setNotifications] = useState<CommNotification[]>(
-    SEED_COMM_NOTIFICATIONS,
-  )
+  const { user } = useAuth()
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [notifications, setNotifications] = useState<CommNotification[]>([])
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const toastId = useRef(0)
@@ -138,19 +144,56 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
+  /* -------------------------------------------------------- Refresh from API */
+  const refresh = useCallback(async () => {
+    if (!user) return
+    try {
+      const [convs, cmps, anns, notifs] = await Promise.all([
+        fetchConversations().catch(() => null),
+        fetchComplaints().catch(() => null),
+        fetchAnnouncements().catch(() => null),
+        fetchNotifications().catch(() => null),
+      ])
+
+      if (convs) {
+        setConversations(convs)
+        // Also fetch messages for the active or returned conversations
+        const allMsgs = await Promise.all(
+          convs.map((c) => fetchMessages(c.id).catch(() => []))
+        )
+        const flattened = allMsgs.flat()
+        if (flattened.length > 0) {
+          setMessages(flattened)
+        }
+      }
+      if (cmps) setComplaints(cmps)
+      if (anns) setAnnouncements(anns)
+      if (notifs) setNotifications(notifs)
+    } catch {
+      // Keep optimistic or seed state on error
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      void refresh()
+    }
+  }, [user, refresh])
+
   /* ------------------------------------------------------------ messaging */
 
   const sendMessage = useCallback(
     (conversationId: string, sender: 'OWNER' | 'STUDENT', senderName: string, text: string) => {
       const trimmed = text.trim()
       if (!trimmed) return
+      const tempId = uid('MSG')
       const message: ChatMessage = {
-        id: uid('MSG'),
+        id: tempId,
         conversationId,
         sender,
         senderName,
         text: trimmed,
-        date: COMM_TODAY,
+        date: getTodayIso(),
         at: nowAt(),
         read: false,
       }
@@ -169,25 +212,19 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
         ),
       )
 
-      // Notification for the receiver (frontend demo — no push is sent).
-      const conv = conversations.find((c) => c.id === conversationId)
-      if (conv) {
-        const note: CommNotification = {
-          id: uid('NTF'),
-          role: sender === 'OWNER' ? 'STUDENT' : 'OWNER',
-          studentId: sender === 'OWNER' ? conv.studentId : undefined,
-          kind: 'MESSAGE',
-          title: sender === 'OWNER' ? 'New message from your PG owner' : `New message from ${conv.studentName}`,
-          body: trimmed.slice(0, 90),
-          to: sender === 'OWNER' ? '/student/messages' : '/owner/communication',
-          date: message.date,
-          at: message.at,
-          read: false,
-        }
-        setNotifications((prev) => [note, ...prev])
+      if (user) {
+        sendChatMessage({ conversationId, text: trimmed })
+          .then((realMsg) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === tempId ? realMsg : m))
+            )
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to send message', 'error')
+          })
       }
     },
-    [conversations],
+    [user, pushToast],
   )
 
   const markConversationRead = useCallback(
@@ -210,25 +247,25 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : c,
         ),
       )
+
+      if (user) {
+        markConversationAsRead(conversationId).catch(() => {})
+      }
     },
-    [],
+    [user],
   )
 
   /* ------------------------------------------------------------ complaints */
 
-  const pushNotification = useCallback((note: CommNotification) => {
-    setNotifications((prev) => [note, ...prev])
-  }, [])
-
   const submitComplaint = useCallback(
     (input: ComplaintSubmitInput): Complaint => {
       const seq = complaints.length + 1
-      const id = `CMP-${COMM_TODAY.slice(2).replace(/-/g, '')}-${String(seq).padStart(3, '0')}`
+      const id = `CMP-${getTodayIso().slice(2).replace(/-/g, '')}-${String(seq).padStart(3, '0')}`
       const complaint: Complaint = {
         id,
         propertyId: input.propertyId,
         studentId: input.studentId,
-        studentName: 'Demo Student',
+        studentName: user?.fullName || 'Student',
         roomId: '',
         roomNumber: '—',
         category: input.category,
@@ -236,37 +273,46 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
         description: input.description.trim(),
         priority: input.priority,
         status: 'SUBMITTED',
-        submittedOn: COMM_TODAY,
+        submittedOn: getTodayIso(),
         image: input.image,
         history: [
           {
             id: uid('EV'),
             actor: 'STUDENT',
-            actorName: 'Demo Student',
+            actorName: user?.fullName || 'Student',
             kind: 'STATUS',
             title: 'Complaint submitted',
-            body: 'Raised from the student portal (demo).',
-            date: COMM_TODAY,
+            body: 'Raised from the student portal.',
+            date: getTodayIso(),
             at: nowAt(),
             status: 'SUBMITTED',
           },
         ],
       }
       setComplaints((prev) => [complaint, ...prev])
-      pushNotification({
-        id: uid('NTF'),
-        role: 'OWNER',
-        kind: 'COMPLAINT',
-        title: 'New complaint submitted',
-        body: `${complaint.subject} (${complaint.id})`,
-        to: '/owner/complaints',
-        date: COMM_TODAY,
-        at: complaint.history[0].at,
-        read: false,
-      })
+
+      if (user) {
+        submitComplaintApi({
+          propertyId: input.propertyId,
+          category: input.category,
+          subject: input.subject,
+          description: input.description,
+          priority: input.priority,
+          image: input.image || undefined,
+        })
+          .then((saved) => {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === id ? saved : c))
+            )
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to submit complaint to server', 'error')
+          })
+      }
+
       return complaint
     },
-    [complaints.length, pushNotification],
+    [complaints.length, user, pushToast],
   )
 
   const addComplaintComment = useCallback(
@@ -292,7 +338,7 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
                     kind: actor === 'OWNER' ? 'RESPONSE' : 'COMMENT',
                     title,
                     body: trimmed,
-                    date: COMM_TODAY,
+                    date: getTodayIso(),
                     at: nowAt(),
                   },
                   ...c.history,
@@ -301,29 +347,24 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : c,
         ),
       )
-      const complaint = complaints.find((c) => c.id === complaintId)
-      if (complaint && actor === 'OWNER') {
-        pushNotification({
-          id: uid('NTF'),
-          role: 'STUDENT',
-          studentId: complaint.studentId,
-          kind: 'COMPLAINT',
-          title: 'Owner responded to your complaint',
-          body: trimmed.slice(0, 90),
-          to: '/student/complaints',
-          date: COMM_TODAY,
-          at: nowAt(),
-          read: false,
-        })
+
+      if (user) {
+        addComplaintCommentApi(complaintId, trimmed, title)
+          .then((updated) => {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? updated : c))
+            )
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to add comment', 'error')
+          })
       }
     },
-    [complaints, pushNotification],
+    [user, pushToast],
   )
 
   const updateComplaintStatus = useCallback(
     (complaintId: string, status: ComplaintStatus, note: string) => {
-      const complaint = complaints.find((c) => c.id === complaintId)
-      if (!complaint) return
       const at = nowAt()
       setComplaints((prev) =>
         prev.map((c) =>
@@ -335,11 +376,11 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
                   {
                     id: uid('EV'),
                     actor: 'OWNER' as const,
-                    actorName: 'Rakesh Sharma (PG Owner)',
+                    actorName: user?.fullName || 'PG Owner',
                     kind: 'STATUS' as const,
                     title: `Status changed to ${COMPLAINT_STATUS_LABELS[status]}`,
-                    body: note.trim() || 'Updated by the PG owner (demo).',
-                    date: COMM_TODAY,
+                    body: note.trim() || 'Updated by the PG owner.',
+                    date: getTodayIso(),
                     at,
                     status,
                   },
@@ -349,25 +390,24 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : c,
         ),
       )
-      pushNotification({
-        id: uid('NTF'),
-        role: 'STUDENT',
-        studentId: complaint.studentId,
-        kind: 'COMPLAINT',
-        title: 'Complaint status updated',
-        body: `${complaint.subject} → ${COMPLAINT_STATUS_LABELS[status]}`,
-        to: '/student/complaints',
-        date: COMM_TODAY,
-        at,
-        read: false,
-      })
+
+      if (user) {
+        updateComplaintStatusApi(complaintId, status, note)
+          .then((updated) => {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? updated : c))
+            )
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to update complaint status', 'error')
+          })
+      }
     },
-    [complaints, pushNotification],
+    [user, pushToast],
   )
 
   const setComplaintPriority = useCallback(
     (complaintId: string, priority: ComplaintPriority) => {
-      const complaint = complaints.find((c) => c.id === complaintId)
       setComplaints((prev) =>
         prev.map((c) =>
           c.id === complaintId
@@ -378,11 +418,11 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
                   {
                     id: uid('EV'),
                     actor: 'OWNER' as const,
-                    actorName: 'Rakesh Sharma (PG Owner)',
+                    actorName: user?.fullName || 'PG Owner',
                     kind: 'PRIORITY' as const,
                     title: `Priority changed to ${priority}`,
-                    body: 'Re-prioritised by the PG owner (demo).',
-                    date: COMM_TODAY,
+                    body: 'Re-prioritised by the PG owner.',
+                    date: getTodayIso(),
                     at: nowAt(),
                   },
                   ...c.history,
@@ -391,9 +431,20 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : c,
         ),
       )
-      if (complaint) pushToast(`Priority updated to ${priority} for ${complaint.id} (demo).`, 'info')
+
+      if (user) {
+        setComplaintPriorityApi(complaintId, priority)
+          .then((updated) => {
+            setComplaints((prev) =>
+              prev.map((c) => (c.id === complaintId ? updated : c))
+            )
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to update priority', 'error')
+          })
+      }
     },
-    [complaints, pushToast],
+    [user, pushToast],
   )
 
   /* --------------------------------------------------------- announcements */
@@ -413,9 +464,16 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
               : a,
           ),
         )
+
+        if (user) {
+          saveAnnouncementApi({ ...input, id }, publish).catch((err) => {
+            pushToast(err.message || 'Failed to save announcement', 'error')
+          })
+        }
         return id
       }
-      const newId = `ANN-${COMM_TODAY.slice(0, 4)}-${String(announcements.length + 1).padStart(3, '0')}`
+
+      const newId = `ANN-${getTodayIso().slice(0, 4)}-${String(announcements.length + 1).padStart(3, '0')}`
       const announcement: Announcement = {
         id: newId,
         ...input,
@@ -423,22 +481,24 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
         readBy: [],
       }
       setAnnouncements((prev) => [announcement, ...prev])
-      if (publish) {
-        pushNotification({
-          id: uid('NTF'),
-          role: 'OWNER',
-          kind: 'ANNOUNCEMENT',
-          title: 'Announcement published',
-          body: `${announcement.title} — ${announcement.propertyId === 'pg-001' ? 'Shree Shyam Boys PG' : 'Ashiana PG'}`,
-          to: '/owner/announcements',
-          date: COMM_TODAY,
-          at: nowAt(),
-          read: false,
-        })
+
+      if (user) {
+        saveAnnouncementApi(input, publish)
+          .then((res) => {
+            if (res.id && res.id !== newId) {
+              setAnnouncements((prev) =>
+                prev.map((a) => (a.id === newId ? { ...a, id: res.id } : a))
+              )
+            }
+          })
+          .catch((err) => {
+            pushToast(err.message || 'Failed to publish announcement', 'error')
+          })
       }
+
       return newId
     },
-    [announcements.length, pushNotification],
+    [announcements.length, user, pushToast],
   )
 
   const toggleAnnouncementPublished = useCallback(
@@ -450,23 +510,44 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : a,
         ),
       )
+
+      if (user) {
+        toggleAnnouncementPublishedApi(id).catch((err) => {
+          pushToast(err.message || 'Failed to toggle publish status', 'error')
+        })
+      }
     },
-    [],
+    [user, pushToast],
   )
 
-  const deleteAnnouncement = useCallback((id: string) => {
-    setAnnouncements((prev) => prev.filter((a) => a.id !== id))
-  }, [])
+  const deleteAnnouncement = useCallback(
+    (id: string) => {
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id))
+      if (user) {
+        deleteAnnouncementApi(id).catch((err) => {
+          pushToast(err.message || 'Failed to delete announcement', 'error')
+        })
+      }
+    },
+    [user, pushToast],
+  )
 
-  const markAnnouncementRead = useCallback((id: string, studentId: string) => {
-    setAnnouncements((prev) =>
-      prev.map((a) =>
-        a.id === id && !a.readBy.includes(studentId)
-          ? { ...a, readBy: [...a.readBy, studentId] }
-          : a,
-      ),
-    )
-  }, [])
+  const markAnnouncementRead = useCallback(
+    (id: string, studentId: string) => {
+      setAnnouncements((prev) =>
+        prev.map((a) =>
+          a.id === id && !a.readBy.includes(studentId)
+            ? { ...a, readBy: [...a.readBy, studentId] }
+            : a,
+        ),
+      )
+
+      if (user) {
+        markAnnouncementReadApi(id).catch(() => {})
+      }
+    },
+    [user],
+  )
 
   /* ---------------------------------------------------------- notifications */
 
@@ -478,9 +559,15 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
     [notifications],
   )
 
-  const markNotificationRead = useCallback((id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
-  }, [])
+  const markNotificationRead = useCallback(
+    (id: string) => {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+      if (user) {
+        markNotificationReadApi(id).catch(() => {})
+      }
+    },
+    [user],
+  )
 
   const markAllNotificationsRead = useCallback(
     (role: 'OWNER' | 'STUDENT', studentId?: string) => {
@@ -491,13 +578,22 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
             : n,
         ),
       )
+      if (user) {
+        markAllNotificationsReadApi().catch(() => {})
+      }
     },
-    [],
+    [user],
   )
 
-  const clearNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id))
-  }, [])
+  const clearNotification = useCallback(
+    (id: string) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      if (user) {
+        clearNotificationApi(id).catch(() => {})
+      }
+    },
+    [user],
+  )
 
   const value = useMemo<CommunicationStoreValue>(
     () => ({
@@ -523,6 +619,7 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
       toasts,
       pushToast,
       dismissToast,
+      refresh,
     }),
     [
       conversations,
@@ -547,6 +644,7 @@ export function CommunicationStoreProvider({ children }: { children: ReactNode }
       toasts,
       pushToast,
       dismissToast,
+      refresh,
     ],
   )
 

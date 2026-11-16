@@ -20,7 +20,7 @@ export type BedStatus = 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE'
 
 export type MembershipStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING'
 
-export type AdmissionCodeStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED'
+export type AdmissionCodeStatus = 'ACTIVE' | 'USED' | 'REVOKED' | 'EXPIRED'
 export type AdmissionRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 /** Staff role is a free-text identity the owner defines themselves (e.g. Chef). */

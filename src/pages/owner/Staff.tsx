@@ -3,7 +3,6 @@ import { Mail, Phone, UserCog, Plus, Trash2, PencilLine, Building2 } from 'lucid
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { SearchInput } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
@@ -22,7 +21,7 @@ interface StaffForm {
   role: string
 }
 
-/** /owner/staff — manage on-ground staff for the demo owner's properties. */
+/** /owner/staff — manage on-ground staff for properties. */
 export function Staff() {
   useDocumentTitle('Staff Management')
 
@@ -152,7 +151,7 @@ export function Staff() {
       key: 'mobile',
       header: 'Mobile',
       sortValue: (s) => s.mobile,
-      render: (s) => <span className="whitespace-nowrap">{s.mobile} (demo)</span>,
+      render: (s) => <span className="whitespace-nowrap">{s.mobile}</span>,
     },
     {
       key: 'role',
@@ -211,7 +210,7 @@ export function Staff() {
     <>
       <AdminPageHeader
         title="Staff Management"
-        description="Add, edit and remove staff assigned to your demo PG properties."
+        description="Add, edit and remove staff assigned to your PG properties."
         actions={
           <button
             type="button"
@@ -223,8 +222,6 @@ export function Staff() {
           </button>
         }
       />
-
-      <DemoBanner message="staff records are fictional demo data — no staff accounts, logins or permissions exist." />
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         <StatisticCard label="Total Staff" value={ownStaff.length} icon={UserCog} tone="ink" />
@@ -253,7 +250,7 @@ export function Staff() {
           rowKey={(s) => s.id}
           pageSize={8}
           emptyTitle="No staff found"
-          emptyDescription="No demo staff match the current search for your properties."
+          emptyDescription="No staff members match the current search for your properties."
         />
       </div>
 
@@ -261,7 +258,7 @@ export function Staff() {
       <Modal
         open={addOpen}
         title="Add Staff"
-        subtitle="Frontend demo — writes to local React state only; no staff account is created."
+        subtitle="Add a staff member assigned to your property."
         onClose={() => setAddOpen(false)}
         footer={
           <>
@@ -289,7 +286,7 @@ export function Staff() {
       <Modal
         open={editing !== null}
         title={editing ? `Edit ${editing.name}` : 'Edit Staff'}
-        subtitle="Update the record in local demo state."
+        subtitle="Update staff contact information and assigned property."
         onClose={() => setEditing(null)}
         footer={
           <>
@@ -319,8 +316,7 @@ export function Staff() {
         title={`Remove ${removing?.name ?? 'staff'}?`}
         message={
           <>
-            This removes the staff record from local demo state. No notification or account
-            deletion happens — this is a frontend-only demo.
+            Are you sure you want to remove <strong>{removing?.name}</strong> from your staff directory?
           </>
         }
         confirmLabel="Remove staff"
@@ -328,22 +324,6 @@ export function Staff() {
         onConfirm={confirmRemove}
         onCancel={() => setRemoving(null)}
       />
-
-      {/* Contact hints */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3 text-[12px] text-ink-mute">
-        <p className="flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-3">
-          <Mail className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-          Emails use the @rahomitra.demo domain.
-        </p>
-        <p className="flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-3">
-          <Phone className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-          Mobile numbers are fictional 98765 … demo values.
-        </p>
-        <p className="flex items-center gap-2 rounded-2xl border border-line bg-white px-4 py-3">
-          <UserCog className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-          Roles carry no real permissions in this demo.
-        </p>
-      </div>
     </>
   )
 }
@@ -377,7 +357,7 @@ function StaffFormFields({
         required
         value={form.name}
         onChange={(v) => setForm({ ...form, name: v })}
-        placeholder="e.g. Ramesh Kumar (demo)"
+        placeholder="e.g. Ramesh Kumar"
         error={errors.name}
       />
       <FormInput
@@ -386,9 +366,9 @@ function StaffFormFields({
         required
         value={form.role}
         onChange={(v) => setForm({ ...form, role: v })}
-        placeholder="e.g. Chef, Manager, Cleaner…"
+        placeholder="e.g. Chef, Manager, Caretaker…"
         error={errors.role}
-        hint="Write the staff member's identity yourself — no fixed list."
+        hint="Designation or department."
       />
       <FormInput
         id="staff-email"
@@ -397,7 +377,7 @@ function StaffFormFields({
         type="email"
         value={form.email}
         onChange={(v) => setForm({ ...form, email: v })}
-        placeholder="staff01@rahomitra.demo"
+        placeholder="staff@example.com"
         error={errors.email}
       />
       <FormInput
@@ -406,9 +386,9 @@ function StaffFormFields({
         required
         value={form.mobile}
         onChange={(v) => setForm({ ...form, mobile: v })}
-        placeholder="98765 43100"
+        placeholder="9876543210"
         error={errors.mobile}
-        hint="Fictional demo number only."
+        hint="10-digit primary mobile number."
       />
     </div>
   )

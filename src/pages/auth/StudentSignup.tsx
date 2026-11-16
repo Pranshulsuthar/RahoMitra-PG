@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useForm } from '../../hooks/useForm'
 import { compose, minLength, required } from '../../utils/validation'
-import { isEmail, isMobile, simulateLatency } from '../../utils/authDemo'
+import { isEmail, isMobile } from '../../utils/authValidation'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { AuthCard } from '../../components/auth/AuthCard'
 import { AuthHeader } from '../../components/auth/AuthHeader'
@@ -17,6 +17,7 @@ import { AuthLink } from '../../components/auth/AuthSuccess'
 import { FormTransition } from '../../components/auth/FormTransition'
 import { StepProgress } from '../../components/auth/StepProgress'
 import { EmailOtpStep } from '../../components/auth/EmailOtpStep'
+import { apiClient, ApiError } from '../../api/client'
 
 type Step = 'email' | 'otp' | 'details' | 'success'
 const STEP_LABELS = ['Email', 'Verify', 'Details', 'Done']
@@ -43,6 +44,13 @@ export function StudentSignup() {
   const [emailError, setEmailError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
 
+  // ---- Step 2: verified token
+  const [signupToken, setSignupToken] = useState<string | null>(null)
+
+  // ---- Step 3: details submit
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
   const goTo = (next: Step, dir: 'forward' | 'backward' = 'forward') => {
     setDirection(dir)
     setStep(next)
@@ -55,13 +63,25 @@ export function StudentSignup() {
     }
     setEmailError(null)
     setSending(true)
-    await simulateLatency(900)
-    setSending(false)
-    goTo('otp')
+
+    try {
+      await apiClient.post('/auth/signup/request-otp', {
+        email: email.trim().toLowerCase(),
+        role: 'STUDENT',
+      })
+      goTo('otp')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setEmailError(err.message)
+      } else {
+        setEmailError('Failed to send verification code. Please try again.')
+      }
+    } finally {
+      setSending(false)
+    }
   }
 
   // ---- Step 3: personal details
-  // Latest form values stay available to the cross-field validators below.
   const valuesRef = useRef(DETAILS_INITIAL)
 
   const detailsForm = useForm(DETAILS_INITIAL, {
@@ -74,13 +94,42 @@ export function StudentSignup() {
       required('Create a password.'),
       minLength(8, 'Password must be at least 8 characters.'),
     ),
-    // Confirm + terms need access to the other fields — resolved via ref below.
     confirmPassword: (value) =>
       value === valuesRef.current.password ? undefined : 'Passwords do not match.',
     terms: (value) => (value === 'true' ? undefined : 'Please accept the Terms & Conditions.'),
   })
 
   valuesRef.current = detailsForm.values
+
+  const handleDetailsSubmit = async () => {
+    if (!signupToken) {
+      goTo('email', 'backward')
+      return
+    }
+
+    setSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      await apiClient.post('/auth/signup/student', {
+        signupToken,
+        fullName: detailsForm.values.fullName.trim(),
+        mobile: detailsForm.values.mobile.trim(),
+        college: detailsForm.values.college.trim(),
+        city: detailsForm.values.city.trim(),
+        password: detailsForm.values.password,
+      })
+      goTo('success')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.message)
+      } else {
+        setSubmitError('Failed to create account. Please check your information and try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const stepIndex = step === 'email' ? 0 : step === 'otp' ? 1 : step === 'details' ? 2 : 3
 
@@ -128,10 +177,6 @@ export function StudentSignup() {
                 </div>
               </form>
 
-              <p className="mt-4 text-center text-[11px] leading-relaxed text-ink-mute">
-                Frontend demo — no OTP email will actually be sent.
-              </p>
-
               <p className="mt-6 text-center text-sm text-ink-soft">
                 Already have an account?{' '}
                 <AuthLink to="/login/student">Login</AuthLink>
@@ -143,8 +188,12 @@ export function StudentSignup() {
             <FormTransition key="otp" direction={direction}>
               <EmailOtpStep
                 email={email}
+                role="student"
                 onChangeEmail={() => goTo('email', 'backward')}
-                onVerified={() => goTo('details')}
+                onVerified={(token) => {
+                  setSignupToken(token)
+                  goTo('details')
+                }}
               />
             </FormTransition>
           )}
@@ -158,7 +207,7 @@ export function StudentSignup() {
               />
 
               <form
-                onSubmit={detailsForm.handleSubmit(() => goTo('success'))}
+                onSubmit={detailsForm.handleSubmit(handleDetailsSubmit)}
                 noValidate
                 className="space-y-5"
               >
@@ -215,7 +264,7 @@ export function StudentSignup() {
                     label="Password"
                     required
                     autoComplete="new-password"
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 8 chars)"
                     value={detailsForm.values.password}
                     error={detailsForm.submitted ? detailsForm.errors.password : undefined}
                     onChange={detailsForm.handleChange}
@@ -262,8 +311,12 @@ export function StudentSignup() {
                   <AuthError message={detailsForm.errors.terms} />
                 )}
 
+                {submitError && <AuthError message={submitError} />}
+
                 <div className="pt-1">
-                  <AuthButton type="submit">Create Student Account</AuthButton>
+                  <AuthButton type="submit" loading={submitting} busyLabel="Creating Account…">
+                    Create Student Account
+                  </AuthButton>
                 </div>
               </form>
             </FormTransition>
@@ -292,10 +345,6 @@ export function StudentSignup() {
                   <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-ink-soft">
                     Welcome to RahoMitra, {detailsForm.values.fullName || 'student'}! You can now
                     sign in and start exploring PG accommodations that fit your budget.
-                  </p>
-                  <p className="mx-auto mt-4 max-w-sm rounded-xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-                    <strong className="font-bold uppercase tracking-wide">Demo confirmation</strong>{' '}
-                    — no account was actually created or saved. This is a frontend simulation.
                   </p>
 
                   <div className="mt-7 space-y-3">

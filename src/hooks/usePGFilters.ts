@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { PG_LISTINGS } from '../data/pgData'
+import { useCallback, useEffect, useState } from 'react'
+import { fetchPGs } from '../api/pg'
 import type { PG, PGCategory, RentSort, SharingOption } from '../types'
 
 export interface PGFilterState {
@@ -35,35 +35,6 @@ export interface InitialFilters {
   maxRent?: number | ''
 }
 
-function matchesFilters(pg: PG, filters: PGFilterState): boolean {
-  const locality = filters.locality.trim().toLowerCase()
-  if (locality) {
-    const haystack = `${pg.name} ${pg.locality} ${pg.city}`.toLowerCase()
-    if (!haystack.includes(locality)) return false
-  }
-
-  if (filters.categories.length > 0 && !filters.categories.includes(pg.category)) return false
-
-  if (filters.minRent !== '' && pg.rent < filters.minRent) return false
-  if (filters.maxRent !== '' && pg.rent > filters.maxRent) return false
-
-  if (filters.ac && !pg.facilities.ac) return false
-  if (filters.wifi && !pg.facilities.wifi) return false
-  if (filters.food && !pg.facilities.food) return false
-  if (filters.laundry && !pg.facilities.laundry) return false
-
-  if (filters.sharing !== 'Any' && !pg.sharingOptions.includes(filters.sharing)) return false
-
-  return true
-}
-
-function sortListings(listings: PG[], sort: RentSort): PG[] {
-  const copy = [...listings]
-  if (sort === 'price-asc') copy.sort((a, b) => a.rent - b.rent)
-  if (sort === 'price-desc') copy.sort((a, b) => b.rent - a.rent)
-  return copy
-}
-
 /** Number of non-default filter facets (used for the "Clear filters" badge). */
 export function countActiveFilters(filters: PGFilterState): number {
   let count = 0
@@ -81,7 +52,7 @@ export function countActiveFilters(filters: PGFilterState): number {
 export type SetFilterFn = <K extends keyof PGFilterState>(key: K, value: PGFilterState[K]) => void
 
 /**
- * Search / filter / sort state for the Explore page, powered by local demo data.
+ * Search / filter / sort state for the Explore page, powered by real backend PG API.
  */
 export function usePGFilters(initial: InitialFilters = {}) {
   const [filters, setFilters] = useState<PGFilterState>({
@@ -90,12 +61,10 @@ export function usePGFilters(initial: InitialFilters = {}) {
     categories: initial.categories ?? [],
   })
 
-  // Brief loading state so the list has a proper loading UI on first render.
+  const [results, setResults] = useState<PG[]>([])
+  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsLoading(false), 400)
-    return () => window.clearTimeout(timer)
-  }, [])
+  const [error, setError] = useState<string | null>(null)
 
   const setFilter = useCallback(<K extends keyof PGFilterState>(key: K, value: PGFilterState[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -116,10 +85,51 @@ export function usePGFilters(initial: InitialFilters = {}) {
 
   const resetAll = useCallback(() => setFilters(DEFAULT_FILTERS), [])
 
-  const results = useMemo(
-    () => sortListings(PG_LISTINGS.filter((pg) => matchesFilters(pg, filters)), filters.sort),
-    [filters],
-  )
+  const refetch = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+
+    const facilities: string[] = []
+    if (filters.ac) facilities.push('ac')
+    if (filters.wifi) facilities.push('wifi')
+    if (filters.food) facilities.push('food')
+    if (filters.laundry) facilities.push('laundry')
+
+    try {
+      const res = await fetchPGs({
+        category: filters.categories.length > 0 ? filters.categories : undefined,
+        locality: filters.locality.trim() || undefined,
+        sort: filters.sort,
+        facilities: facilities.length > 0 ? facilities : undefined,
+        sharing: filters.sharing,
+        minRent: filters.minRent,
+        maxRent: filters.maxRent,
+        page: 1,
+        limit: 50,
+      })
+      setResults(res.data)
+      setTotal(res.meta.total)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch PG listings'
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [filters])
+
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(() => {
+      if (active) {
+        refetch()
+      }
+    }, 150)
+
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [refetch])
 
   const activeFilterCount = countActiveFilters(filters)
 
@@ -131,7 +141,9 @@ export function usePGFilters(initial: InitialFilters = {}) {
     resetAll,
     results,
     isLoading,
+    error,
+    refetch,
     activeFilterCount,
-    total: PG_LISTINGS.length,
+    total,
   }
 }

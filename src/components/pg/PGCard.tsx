@@ -3,7 +3,7 @@ import { ArrowRight, MapPin, Star } from 'lucide-react'
 import type { PG } from '../../types'
 import { formatINR } from '../../utils/format'
 import { availableFacilities } from './facilityMeta'
-import { Badge, DemoBadge } from '../common/Badge'
+import { Badge } from '../common/Badge'
 import { ImageWithFallback } from '../common/ImageWithFallback'
 
 const categoryTone = {
@@ -30,18 +30,17 @@ export function PGCard({
   return (
     <Link
       to={`/pg/${pg.slug}`}
-      aria-label={`View details of ${pg.name} (demo listing)`}
+      aria-label={`View details of ${pg.name}`}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-card-hover focus-visible:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold active:translate-y-0 active:scale-[0.99]"
     >
       <div className="relative h-52 overflow-hidden">
         <ImageWithFallback
           src={pg.coverImage}
-          alt={`${pg.name} — demo property image`}
+          alt={`${pg.name} cover photo`}
           className="transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
           <span className="flex flex-col items-start gap-1.5">
-            <DemoBadge />
             {featuredLabel && (
               <span
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] shadow-sm ${
@@ -73,17 +72,11 @@ export function PGCard({
           <span className="truncate">
             {pg.locality}, {pg.city}
           </span>
-          <span className="shrink-0 rounded bg-ivory px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-mute">
-            Demo
-          </span>
         </p>
 
         <div className="mt-4 flex items-baseline gap-2">
           <span className="font-display text-2xl font-semibold text-forest">{formatINR(pg.rent)}</span>
           <span className="text-xs text-ink-soft">/month</span>
-          <span className="ml-auto rounded-full bg-gold-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold-dark">
-            Sample rent
-          </span>
         </div>
 
         <ul className="mt-4 flex flex-wrap gap-1.5">

@@ -11,12 +11,11 @@ import {
   Receipt,
   ShieldCheck,
   Sparkles,
-  Wrench,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useAdminStore } from '../../context/AdminStore'
 import { useOwnerStore } from '../../context/OwnerStore'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { StatCard } from '../../components/admin/StatCard'
@@ -25,28 +24,33 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { cn } from '../../utils/cn'
 import { formatINR } from '../../utils/format'
 
-const DEMO_OWNER_NAME = 'Rakesh Sharma (demo)'
-const DEMO_SUBSCRIPTION_ID = 'sub-001'
-
 const STATUS_HELP: Record<string, string> = {
   ACTIVE: 'Your plan is live and all features are available.',
-  TRIAL: 'Demo trial period — full access until it converts.',
+  TRIAL: 'Trial period — full access until it converts.',
   EXPIRING_SOON: 'Renew soon to avoid losing access to premium features.',
   EXPIRED: 'Renew your plan to restore full access.',
-  CANCELLED: 'This subscription was cancelled (demo).',
-  PENDING: 'Payment is pending (demo) — access starts after confirmation.',
+  CANCELLED: 'This subscription was cancelled.',
+  PENDING: 'Payment is pending — access starts after confirmation.',
 }
 
-/** /owner/subscription — demo SaaS plan screen (payments are simulated only). */
+/** /owner/subscription — SaaS plan screen. */
 export function OwnerSubscription() {
   useDocumentTitle('Subscription & Plans')
 
+  const { user } = useAuth()
   const { plans, subscriptions, payments, changeSubscriptionPlan, pushToast } = useAdminStore()
-  const { properties } = useOwnerStore()
+  const { owner, properties } = useOwnerStore()
 
   const subscription = useMemo(
-    () => subscriptions.find((s) => s.id === DEMO_SUBSCRIPTION_ID) ?? subscriptions[0],
-    [subscriptions],
+    () =>
+      subscriptions.find(
+        (s) =>
+          (user?.email && s.ownerEmail === user.email) ||
+          (owner?.email && s.ownerEmail === owner.email) ||
+          (user?.name && s.ownerName === user.name) ||
+          (owner?.name && s.ownerName === owner.name),
+      ) ?? subscriptions[0],
+    [subscriptions, user, owner],
   )
   const currentPlan = useMemo(
     () => plans.find((p) => p.id === subscription?.planId) ?? plans[0],
@@ -63,9 +67,15 @@ export function OwnerSubscription() {
   const ownerInvoices = useMemo(
     () =>
       payments
-        .filter((p) => p.ownerName === DEMO_OWNER_NAME)
+        .filter(
+          (p) =>
+            (user?.email && p.ownerEmail === user.email) ||
+            (user?.name && p.ownerName === user.name) ||
+            (owner?.name && p.ownerName === owner.name) ||
+            (subscription && p.subscriptionId === subscription.id),
+        )
         .sort((a, b) => b.paidOn.localeCompare(a.paidOn)),
-    [payments],
+    [payments, user, owner, subscription],
   )
 
   const planRank = (id: string) => plans.findIndex((p) => p.id === id)
@@ -77,18 +87,18 @@ export function OwnerSubscription() {
   const confirmChange = (planId: string) => {
     const plan = plans.find((p) => p.id === planId)
     if (!plan || plan.id === currentPlan?.id) return
-    changeSubscriptionPlan(subscription?.id ?? DEMO_SUBSCRIPTION_ID, planId)
-    pushToast(
-      `Plan changed to ${plan.name} (demo) — visible on your dashboard and the admin Subscriptions screen.`,
-    )
+    if (subscription?.id) {
+      changeSubscriptionPlan(subscription.id, planId)
+    }
+    pushToast(`Plan changed to ${plan.name}.`)
     setSelecting(null)
   }
 
   const daysLeft = useMemo(() => {
-    if (!subscription) return 0
-    const start = new Date(subscription.expiryOn).getTime()
-    const now = new Date('2026-05-14').getTime()
-    return Math.max(0, Math.ceil((start - now) / 86_400_000))
+    if (!subscription?.expiryOn) return 0
+    const expiry = new Date(subscription.expiryOn).getTime()
+    const now = Date.now()
+    return Math.max(0, Math.ceil((expiry - now) / 86_400_000))
   }, [subscription])
 
   if (!subscription || !currentPlan) {
@@ -97,7 +107,7 @@ export function OwnerSubscription() {
         <AdminPageHeader title="Subscription & Plans" description="Your SaaS plan, billing history and upgrades." />
         <EmptyState
           title="No subscription found"
-          description="No demo subscription is linked to this account yet."
+          description="No active subscription plan is linked to this account yet."
           icon={<CreditCard className="h-6 w-6" aria-hidden />}
         />
       </>
@@ -116,8 +126,6 @@ export function OwnerSubscription() {
           </span>
         }
       />
-
-      <DemoBanner message="all prices, invoices and payment methods below are illustrative — no Razorpay, UPI or real transaction is connected to this screen." />
 
       {/* --------------------------------------------------- current plan */}
       <div className="grid gap-5 lg:grid-cols-3">
@@ -155,7 +163,7 @@ export function OwnerSubscription() {
 
           <p className="mt-3 text-[12.5px] leading-relaxed text-ivory/75">
             {subscription.suspended
-              ? 'This subscription is suspended (demo) — contact platform support to reactivate.'
+              ? 'This subscription is suspended — contact platform support to reactivate.'
               : (STATUS_HELP[subscription.status] ?? '')}
           </p>
 
@@ -221,7 +229,7 @@ export function OwnerSubscription() {
               </li>
               <li className="flex items-center justify-between gap-3">
                 <span>Auto-renew</span>
-                <span className="font-semibold text-ink">Off (demo)</span>
+                <span className="font-semibold text-ink">Enabled</span>
               </li>
             </ul>
             <p className="mt-3 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-3.5 py-2.5 text-[11.5px] leading-relaxed text-gold-dark">
@@ -238,7 +246,6 @@ export function OwnerSubscription() {
             <ShieldCheck className="h-5 w-5 text-gold-dark" aria-hidden />
             What&apos;s included in {currentPlan.name}
           </h2>
-          <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">demo features</span>
         </div>
         <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {currentPlan.featureToggles.map((feature) => (
@@ -267,7 +274,7 @@ export function OwnerSubscription() {
             <Sparkles className="h-5 w-5 text-gold-dark" aria-hidden />
             Compare plans
           </h2>
-          <p className="text-[11.5px] text-ink-mute">Select a plan to upgrade or downgrade (demo).</p>
+          <p className="text-[11.5px] text-ink-mute">Select a plan to upgrade or downgrade.</p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-3">
@@ -324,7 +331,7 @@ export function OwnerSubscription() {
                     </span>
                   ) : plan.status === 'DISABLED' ? (
                     <span className="inline-flex items-center justify-center rounded-full border border-line bg-ivory px-4 py-2.5 text-sm font-semibold text-ink-mute">
-                      Unavailable (demo)
+                      Unavailable
                     </span>
                   ) : (
                     <button
@@ -393,7 +400,7 @@ export function OwnerSubscription() {
           {ownerInvoices.length === 0 ? (
             <EmptyState
               title="No invoices yet"
-              description="Your demo plan payments will show up here."
+              description="Your plan payments will show up here."
               icon={<Receipt className="h-6 w-6" aria-hidden />}
             />
           ) : (
@@ -432,14 +439,14 @@ export function OwnerSubscription() {
         <StatCard label="Plan amount" value={formatINR(subscription.amount)} icon={CreditCard} tone="forest" hint={subscription.cycle} />
         <StatCard label="Properties used" value={`${usedProperties}/${allowedProperties}`} icon={Layers} tone="gold" hint="Plan limit" />
         <StatCard label="Days remaining" value={daysLeft} icon={CalendarClock} tone={daysLeft <= 7 ? 'danger' : 'ink'} hint="Until expiry" />
-        <StatCard label="Invoices" value={ownerInvoices.length} icon={Receipt} tone="ink" hint="Demo records" />
+        <StatCard label="Invoices" value={ownerInvoices.length} icon={Receipt} tone="ink" hint="Payment records" />
       </div>
 
       {/* ------------------------------------------ change plan confirm */}
       <Modal
         open={selecting !== null}
         title={selecting && isUpgrade(selecting) ? 'Upgrade plan?' : 'Change plan?'}
-        subtitle="DEMO MODE — no payment is processed and no provider is contacted."
+        subtitle="Confirm to update your subscription plan."
         onClose={() => setSelecting(null)}
         size="md"
         footer={
@@ -456,7 +463,7 @@ export function OwnerSubscription() {
               onClick={() => selecting && confirmChange(selecting)}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory transition-colors hover:bg-forest-light"
             >
-              Confirm change (demo)
+              Confirm change
             </button>
           </>
         }
@@ -485,8 +492,7 @@ export function OwnerSubscription() {
               })()}
             </div>
             <p className="text-[13px] leading-relaxed text-ink-soft">
-              Your new plan takes effect immediately in this demo. The admin Subscriptions screen will reflect the
-              change right away.
+              Your new plan will take effect immediately.
             </p>
           </div>
         )}
@@ -496,7 +502,7 @@ export function OwnerSubscription() {
       <Modal
         open={detailPlan !== null}
         title={plans.find((p) => p.id === detailPlan)?.name ?? 'Plan details'}
-        subtitle="Full feature list for this demo plan."
+        subtitle="Full feature list for this plan."
         onClose={() => setDetailPlan(null)}
         size="md"
         footer={
@@ -551,11 +557,6 @@ export function OwnerSubscription() {
           </div>
         )}
       </Modal>
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <Wrench className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        Frontend-only demo — plan changes live in memory and reset on reload.
-      </p>
     </>
   )
 }

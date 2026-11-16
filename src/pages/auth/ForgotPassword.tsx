@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Info, ArrowLeft, KeyRound } from 'lucide-react'
+import { Mail, ArrowLeft, KeyRound } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
-import { isEmail, simulateLatency } from '../../utils/authDemo'
+import { isEmail } from '../../utils/authValidation'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { AuthCard } from '../../components/auth/AuthCard'
 import { AuthHeader } from '../../components/auth/AuthHeader'
@@ -12,11 +12,8 @@ import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLink } from '../../components/auth/AuthSuccess'
 import { FormTransition } from '../../components/auth/FormTransition'
 import { StepProgress } from '../../components/auth/StepProgress'
+import { apiClient, ApiError } from '../../api/client'
 
-/**
- * Password recovery (frontend simulation only).
- * Step 2 never claims that a recovery email was sent.
- */
 export function ForgotPassword() {
   useDocumentTitle('Forgot Password')
 
@@ -33,9 +30,21 @@ export function ForgotPassword() {
     }
     setError(null)
     setLoading(true)
-    await simulateLatency(850)
-    setLoading(false)
-    setStep('confirm')
+
+    try {
+      await apiClient.post('/auth/forgot-password', {
+        email: email.trim().toLowerCase(),
+      })
+      setStep('confirm')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Failed to process request. Please try again later.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -71,8 +80,8 @@ export function ForgotPassword() {
                   }}
                 />
                 <div className="mt-6">
-                  <AuthButton type="submit" loading={loading} busyLabel="Checking…">
-                    Continue
+                  <AuthButton type="submit" loading={loading} busyLabel="Sending Link…">
+                    Send Password Reset Link
                   </AuthButton>
                 </div>
               </form>
@@ -88,7 +97,7 @@ export function ForgotPassword() {
                 </div>
 
                 <h1 className="fade-scale-in text-[1.5rem] sm:text-2xl">
-                  Recovery simulation complete
+                  Check your inbox
                 </h1>
 
                 <div
@@ -96,19 +105,13 @@ export function ForgotPassword() {
                   style={{ animationDelay: '0.15s' }}
                 >
                   <p>
-                    This is a <strong className="font-semibold text-ink">frontend demo</strong> — no
-                    recovery email was sent and no request left your browser. In the live product, a
-                    secure reset link would be emailed to{' '}
-                    <strong className="font-semibold text-ink">{email}</strong>.
+                    If an account exists with{' '}
+                    <strong className="font-semibold text-ink">{email}</strong>, we have emailed
+                    a secure password reset link.
                   </p>
-
-                  <div className="flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-left text-[12px] text-gold-dark">
-                    <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                    <span>
-                      Nothing was sent — you can still explore the reset screen below to see the
-                      interface.
-                    </span>
-                  </div>
+                  <p className="text-xs text-ink-mute">
+                    The link will expire in 30 minutes. If you do not see it shortly, please check your spam folder.
+                  </p>
                 </div>
 
                 <div className="fade-scale-in mt-7 space-y-3" style={{ animationDelay: '0.25s' }}>
@@ -116,8 +119,8 @@ export function ForgotPassword() {
                     <ArrowLeft className="h-4 w-4" aria-hidden />
                     Try another email
                   </AuthButton>
-                  <AuthLink to="/reset-password" className="block text-sm">
-                    Open Reset Password screen (demo)
+                  <AuthLink to="/auth" className="block text-sm">
+                    Back to sign in
                   </AuthLink>
                 </div>
               </div>

@@ -1,16 +1,12 @@
-import { BedDouble, DoorOpen, Info, Layers, Lock, Ruler, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { BedDouble, DoorOpen, Info, Layers, Lock, Ruler, Users, Building2, KeyRound } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
-import {
-  ROOM_FACILITIES,
-  ROOMMATES,
-  STUDENT_ADMISSION,
-  STUDENT_ROOM,
-} from '../../data/studentData'
-import { roomOccupancy } from '../../types/owner'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
+import { ROOM_FACILITIES } from '../../utils/constants'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
+import { JoinPGModal } from '../../components/student/JoinPGModal'
 import { cn } from '../../utils/cn'
 
 const TYPE_LABEL: Record<string, string> = {
@@ -21,225 +17,231 @@ const TYPE_LABEL: Record<string, string> = {
   CUSTOM: 'Custom Sharing',
 }
 
-/** Visual bed map — the demo student's bed is highlighted distinctly. */
-function BedMap({ occupiedLabels }: { occupiedLabels: string[] }) {
-  const allLabels = STUDENT_ROOM.beds.map((b) => b.label)
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {allLabels.map((label) => {
-        const isMe = label === STUDENT_ADMISSION.bedLabel
-        const occupied = occupiedLabels.includes(label)
-        const roommate = ROOMMATES.find((m) => m.bedLabel === label)
-        return (
-          <div
-            key={label}
-            className={cn(
-              'relative rounded-2xl border-2 px-4 py-4 transition-all',
-              isMe
-                ? 'border-gold bg-gold-soft/60 shadow-[0_10px_24px_-16px_rgba(196,154,82,0.9)]'
-                : occupied
-                  ? 'border-line bg-ivory/60'
-                  : 'border-dashed border-forest/40 bg-forest-soft/40',
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p
-                  className={cn(
-                    'flex items-center gap-2 text-[15px] font-bold',
-                    isMe ? 'text-gold-dark' : 'text-ink',
-                  )}
-                >
-                  <BedDouble className="h-4.5 w-4.5" aria-hidden />
-                  Bed {label}
-                </p>
-                <p className="mt-1 text-[12.5px] text-ink-mute">
-                  {isMe
-                    ? 'Allocated to you (demo)'
-                    : occupied
-                      ? `Occupied by ${roommate?.name ?? 'another student (demo)'}`
-                      : 'Available'}
-                </p>
-              </div>
-              {isMe ? (
-                <span className="shrink-0 rounded-full bg-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest-dark">
-                  Your bed
-                </span>
-              ) : (
-                <StatusBadge status={occupied ? 'OCCUPIED' : 'AVAILABLE'} />
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/** /student/room — read-only room info with a visual occupancy map. */
 export function MyRoom() {
   useDocumentTitle('My Room')
 
-  const occupancy = roomOccupancy(STUDENT_ROOM)
-  const occupiedLabels = STUDENT_ROOM.beds
-    .filter((b) => b.status === 'OCCUPIED')
-    .map((b) => b.label)
+  const [accommodation, setAccommodation] = useState<StudentAccommodation | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const data = await fetchStudentAccommodation()
+      setAccommodation(data)
+    } catch {
+      setAccommodation(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <p className="text-sm text-ink-mute">Loading room details…</p>
+      </div>
+    )
+  }
+
+  if (!accommodation) {
+    return (
+      <>
+        <AdminPageHeader
+          title="My Room"
+          description="Your assigned room, bed and roommate details."
+          actions={
+            <button
+              type="button"
+              onClick={() => setJoinModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory shadow-card transition-all hover:bg-forest-light"
+            >
+              <KeyRound className="h-4 w-4" />
+              Join PG with Code
+            </button>
+          }
+        />
+        <div className="rounded-3xl border border-dashed border-line bg-white p-12 text-center shadow-card">
+          <DoorOpen className="mx-auto mb-4 h-12 w-12 text-forest" />
+          <h2 className="font-display text-xl font-bold text-ink">No room allocated yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft leading-relaxed">
+            You do not have an active room allocation. If your owner gave you an admission code, join your PG to view your room and roommates.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setJoinModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-ivory shadow-card transition-colors hover:bg-forest-light"
+            >
+              <KeyRound className="h-4 w-4" />
+              Join PG with Code
+            </button>
+          </div>
+        </div>
+        <JoinPGModal
+          open={joinModalOpen}
+          onClose={() => setJoinModalOpen(false)}
+          onSuccess={() => loadData()}
+        />
+      </>
+    )
+  }
+
+  const { room, bed, property, roommates } = accommodation
+  const myBedLabel = bed.label
+  const roommatesList = roommates || []
 
   return (
     <>
       <AdminPageHeader
         title="My Room"
-        description={`Room ${STUDENT_ROOM.number} at Shree Shyam Boys PG — allocation is managed by the PG owner and cannot be edited here.`}
+        description={`Room ${room.number} at ${property.name} — managed by property owner.`}
         actions={
-          <span className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-4 py-2.5 text-[13px] font-bold text-forest">
-            <Lock className="h-4 w-4" aria-hidden />
-            Allocation locked (demo)
+          <span className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-4 py-2 text-xs font-bold text-forest">
+            <Lock className="h-3.5 w-3.5" aria-hidden />
+            Allocated Bed {myBedLabel}
           </span>
         }
       />
 
-      <DemoBanner message="room facts, occupancy and bed statuses below are local illustrative demo records — they reset on reload." />
-
       {/* ------------------------------------------------------- stat cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard
           label="Room Number"
-          value={STUDENT_ROOM.number}
+          value={room.number}
           icon={DoorOpen}
           tone="forest"
-          hint={`Floor ${STUDENT_ROOM.floor}`}
-        />
-        <StatisticCard
-          label="Floor"
-          value={`${STUDENT_ROOM.floor}`}
-          icon={Layers}
-          tone="ink"
-          hint="Second floor (demo)"
+          hint={`Floor ${room.floor}`}
         />
         <StatisticCard
           label="Sharing Type"
-          value={TYPE_LABEL[STUDENT_ROOM.type] ?? STUDENT_ROOM.type}
+          value={TYPE_LABEL[room.type] ?? `${room.type} Sharing`}
           icon={Users}
           tone="gold"
+          hint={`${property.name}`}
         />
         <StatisticCard
           label="My Bed"
-          value={STUDENT_ADMISSION.bedLabel}
+          value={myBedLabel}
           icon={BedDouble}
           tone="forest"
-          hint="Allocated bed (demo)"
+          hint="Allocated bed"
         />
         <StatisticCard
           label="Monthly Rent"
-          value={`₹${STUDENT_ROOM.rent.toLocaleString('en-IN')}`}
+          value={`₹${room.rent.toLocaleString('en-IN')}`}
           icon={Ruler}
           tone="ink"
-          hint="Per month · demo"
-        />
-        <StatisticCard
-          label="Current Occupancy"
-          value={`${occupancy.occupied}/${occupancy.capacity}`}
-          icon={Users}
-          tone={occupancy.occupied >= occupancy.capacity ? 'danger' : 'gold'}
-          hint={`Capacity ${occupancy.capacity} beds`}
+          hint="Monthly charge"
         />
       </div>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         {/* ------------------------------------------------ visual occupancy */}
         <section className="min-w-0 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base sm:text-lg">Room occupancy</h2>
-            <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              {occupancy.occupied} of {occupancy.capacity} beds occupied · demo
-            </span>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base sm:text-lg">Room & Bed Allocation</h2>
           </div>
-          <p className="mb-4 flex items-center gap-2 text-[12.5px] text-ink-mute">
-            <Info className="h-3.5 w-3.5 shrink-0 text-gold-dark" aria-hidden />
-            Visual representation of your shared room — read-only in this demo.
-          </p>
 
-          <BedMap occupiedLabels={occupiedLabels} />
-
-          {/* Occupancy meter */}
-          <div className="mt-5">
-            <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-bold text-ink-soft">
-              <span>Occupancy</span>
-              <span>
-                {occupancy.occupied}/{occupancy.capacity} beds
-              </span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* My Bed */}
+            <div className="relative rounded-2xl border-2 border-gold bg-gold-soft/60 px-4 py-4 shadow-[0_10px_24px_-16px_rgba(196,154,82,0.9)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-[15px] font-bold text-gold-dark">
+                    <BedDouble className="h-4.5 w-4.5" aria-hidden />
+                    Bed {myBedLabel}
+                  </p>
+                  <p className="mt-1 text-[12.5px] text-ink-mute">
+                    Allocated to you
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-forest-dark">
+                  Your bed
+                </span>
+              </div>
             </div>
-            <div
-              className="h-3 w-full overflow-hidden rounded-full bg-ivory-deep"
-              role="img"
-              aria-label={`Room occupancy: ${occupancy.occupied} of ${occupancy.capacity} beds (demo data)`}
-            >
-              <div
-                className="h-full rounded-full bg-forest transition-all duration-500"
-                style={{
-                  width: `${occupancy.capacity > 0 ? (occupancy.occupied / occupancy.capacity) * 100 : 0}%`,
-                }}
-              />
-            </div>
+
+            {/* Roommates Beds */}
+            {roommatesList.map((mate) => (
+              <div key={mate.id} className="relative rounded-2xl border-2 border-line bg-ivory/60 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
+                      <BedDouble className="h-4.5 w-4.5" aria-hidden />
+                      Bed {mate.bedLabel}
+                    </p>
+                    <p className="mt-1 text-[12.5px] text-ink-mute">
+                      Occupied by {mate.name}
+                    </p>
+                  </div>
+                  <StatusBadge status="OCCUPIED" />
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-            <p>
-              Students cannot edit room allocation — contact the PG owner (Section 04) for any
-              bed or room change requests.
-            </p>
-          </div>
-        </section>
-
-        {/* ------------------------------------------------- room facilities */}
-        <aside className="space-y-5">
-          <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-            <h2 className="mb-4 text-base sm:text-lg">Room facilities</h2>
-            <ul className="grid gap-2.5">
+          {/* Quick facilities strip */}
+          <div className="mt-6 border-t border-line pt-5">
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-ink-mute">
+              Room Amenities
+            </h3>
+            <ul className="flex flex-wrap gap-2">
               {ROOM_FACILITIES.map((facility) => (
                 <li
                   key={facility}
-                  className="flex items-center gap-2.5 rounded-xl border border-line bg-ivory/40 px-3.5 py-2.5 text-[13px] font-semibold text-ink"
+                  className="rounded-full border border-line bg-ivory/50 px-3.5 py-1.5 text-xs font-semibold text-ink"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-forest-soft text-forest">
-                    <BedDouble className="h-3.5 w-3.5" aria-hidden />
-                  </span>
                   {facility}
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-[11.5px] leading-relaxed text-ink-mute">
-              Facility list is a fixed demo subset of the PG’s amenities.
-            </p>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------- roommates aside */}
+        <aside className="space-y-5">
+          <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
+            <h2 className="mb-3 text-base sm:text-lg">Roommates</h2>
+            {roommatesList.length > 0 ? (
+              <ul className="space-y-3">
+                {roommatesList.map((mate) => (
+                  <li
+                    key={mate.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ivory/40 px-3.5 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-ink">{mate.name}</p>
+                      <p className="text-xs text-ink-mute">Bed {mate.bedLabel}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-ink-mute">No other roommates registered in this room yet.</p>
+            )}
           </section>
 
           <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-            <h2 className="mb-4 text-base sm:text-lg">Room details</h2>
-            <dl className="space-y-2.5 text-[13px]">
-              {[
-                ['Room number', STUDENT_ROOM.number],
-                ['Floor', `${STUDENT_ROOM.floor}`],
-                ['Type', TYPE_LABEL[STUDENT_ROOM.type] ?? STUDENT_ROOM.type],
-                ['Capacity', `${occupancy.capacity} beds`],
-                ['Occupied', `${occupancy.occupied} beds`],
-                ['Monthly rent', `₹${STUDENT_ROOM.rent.toLocaleString('en-IN')}`],
-                ['My bed', STUDENT_ADMISSION.bedLabel],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-line bg-ivory/30 px-3.5 py-2.5"
-                >
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-ink-mute">
-                    {label}
-                  </dt>
-                  <dd className="truncate text-right font-semibold text-ink">{value}</dd>
-                </div>
-              ))}
-            </dl>
+            <h2 className="mb-2 text-base sm:text-lg">Property Details</h2>
+            <div className="space-y-2 text-xs text-ink-soft">
+              <p><strong className="text-ink">PG:</strong> {property.name}</p>
+              <p><strong className="text-ink">Locality:</strong> {property.locality}, {property.city}</p>
+              <p><strong className="text-ink">Floor:</strong> {room.floor}</p>
+            </div>
           </section>
         </aside>
       </div>
+
+      <JoinPGModal
+        open={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+        onSuccess={() => loadData()}
+      />
     </>
   )
 }

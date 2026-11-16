@@ -32,7 +32,7 @@ export function DataTable<T>({
   rowKey,
   pageSize = 8,
   emptyTitle = 'No records found',
-  emptyDescription = 'Try adjusting the search or filters — all data shown here is demo data.',
+  emptyDescription = 'Try adjusting your search query or active filters to find matching records.',
   toolbar,
 }: DataTableProps<T>) {
   const [sort, setSort] = useState<SortState>(null)
@@ -141,7 +141,7 @@ export function DataTable<T>({
         <div className="flex flex-col gap-3 border-t border-line bg-ivory/40 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-ink-mute">
             Showing {safePage * pageSize + 1}–{Math.min((safePage + 1) * pageSize, sorted.length)} of{' '}
-            {sorted.length} records · demo data
+            {sorted.length} records
           </p>
           <div className="flex items-center gap-2">
             <button

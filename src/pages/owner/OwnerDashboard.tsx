@@ -18,10 +18,10 @@ import {
   Wrench,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { aggregateRooms, useOwnerStore } from '../../context/OwnerStore'
 import { useAdminStore } from '../../context/AdminStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { BarChart, DonutChart } from '../../components/admin/Charts'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -37,7 +37,7 @@ const ACTIVITY_ICONS = {
   staff: UserRound,
 }
 
-/** /owner/dashboard — premium owner overview with clearly-labelled demo data. */
+/** /owner/dashboard — owner overview connected to real store/API data. */
 export function OwnerDashboard() {
   useDocumentTitle('Owner Dashboard')
 
@@ -112,11 +112,12 @@ export function OwnerDashboard() {
       : (scopedProperties[0]?.name ?? 'the selected property')
 
   /* ------------------------------------------- Section 08 — business overview */
+  const { user } = useAuth()
   const { subscriptions, plans, payments, featuredRequests } = useAdminStore()
 
   const mySubscription = useMemo(
-    () => subscriptions.find((s) => s.ownerName === 'Rakesh Sharma (demo)') ?? subscriptions[0],
-    [subscriptions],
+    () => subscriptions.find((s) => s.ownerEmail === user?.email || s.ownerName === user?.name) ?? subscriptions[0],
+    [subscriptions, user],
   )
   const myPlan = useMemo(
     () => plans.find((p) => p.id === mySubscription?.planId) ?? plans[0],
@@ -129,18 +130,18 @@ export function OwnerDashboard() {
   const myInvoices = useMemo(
     () =>
       payments
-        .filter((p) => p.ownerName === 'Rakesh Sharma (demo)')
+        .filter((p) => p.ownerEmail === user?.email || p.ownerName === user?.name)
         .sort((a, b) => b.paidOn.localeCompare(a.paidOn))
         .slice(0, 3),
-    [payments],
+    [payments, user],
   )
 
   const myFeatured = useMemo(
     () =>
       featuredRequests.filter(
-        (f) => f.pgName === 'Shree Shyam Boys PG' || f.ownerName === 'Rakesh Sharma (demo)',
+        (f) => f.ownerEmail === user?.email || f.ownerName === user?.name,
       ),
-    [featuredRequests],
+    [featuredRequests, user],
   )
   const liveFeatured = myFeatured.find((f) => f.status === 'APPROVED' && f.listingStatus === 'ACTIVE')
 
@@ -150,7 +151,7 @@ export function OwnerDashboard() {
     <>
       <AdminPageHeader
         title="Dashboard"
-        description={`A premium overview of rooms, beds, students and admissions across ${scopeLabel}.`}
+        description={`A comprehensive overview of rooms, beds, residents and admissions across ${scopeLabel}.`}
         actions={
           <>
             <Link
@@ -170,8 +171,6 @@ export function OwnerDashboard() {
           </>
         }
       />
-
-      <DemoBanner message="every statistic below is computed from local illustrative demo data for your two sample PGs — nothing here is live platform data." />
 
       {/* ------------------------------------------------------- stat cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-8">
@@ -201,7 +200,7 @@ export function OwnerDashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">Property-wise occupancy</h2>
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              % beds occupied · demo
+              % beds occupied
             </span>
           </div>
           {occupancyData.length === 0 ? (
@@ -211,7 +210,7 @@ export function OwnerDashboard() {
               data={occupancyData}
               maxValue={100}
               valueSuffix="%"
-              ariaLabel="Property-wise occupancy percentage (demo data)"
+              ariaLabel="Property-wise occupancy percentage"
             />
           )}
         </section>
@@ -220,7 +219,7 @@ export function OwnerDashboard() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">Room availability</h2>
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              beds · demo
+              beds
             </span>
           </div>
           <DonutChart
@@ -230,7 +229,7 @@ export function OwnerDashboard() {
               { label: 'Maintenance', value: totals.maintenance, color: '#8B928D' },
             ]}
             centerLabel={`${totals.totalBeds} beds`}
-            ariaLabel="Bed availability donut chart (demo data)"
+            ariaLabel="Bed availability donut chart"
           />
         </section>
       </div>
@@ -262,7 +261,7 @@ export function OwnerDashboard() {
               <p className="mt-2 text-2xl font-bold">{myPlan.name}</p>
               <p className="mt-1 text-[12.5px] text-ivory/75">
                 {formatINR(mySubscription.cycle === 'YEARLY' ? myPlan.priceYearly : myPlan.priceMonthly)} per{' '}
-                {mySubscription.cycle === 'YEARLY' ? 'year' : 'month'} · demo billing
+                {mySubscription.cycle === 'YEARLY' ? 'year' : 'month'}
               </p>
 
               <div className="mt-3.5 flex flex-wrap gap-2">
@@ -336,7 +335,7 @@ export function OwnerDashboard() {
                     <p className="mt-2 text-[12.5px] leading-relaxed text-ink-soft">
                       Your featured request for {myFeatured[0].pgName} is{' '}
                       {myFeatured[0].status === 'PENDING'
-                        ? 'awaiting admin approval (demo).'
+                        ? 'awaiting admin approval.'
                         : myFeatured[0].status === 'REJECTED'
                           ? `not approved — ${myFeatured[0].rejectReason ?? 'no reason recorded'}.`
                           : 'no longer active.'}
@@ -345,7 +344,7 @@ export function OwnerDashboard() {
                 ) : (
                   <p className="mt-2.5 text-[12.5px] leading-relaxed text-ink-soft">
                     No featured listing yet — approved Featured (₹299/mo) and Premium Featured (₹499/mo) placements
-                    show a badge on Explore (demo).
+                    show a badge on Explore.
                   </p>
                 )}
               </div>
@@ -356,7 +355,7 @@ export function OwnerDashboard() {
               <div className="rounded-3xl border border-line bg-ivory/40 p-5">
                 <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">Plan history</h3>
                 {mySubscription.events.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-mute">No demo history yet.</p>
+                  <p className="text-[12.5px] text-ink-mute">No history yet.</p>
                 ) : (
                   <ol className="space-y-2.5 border-l-2 border-line pl-4">
                     {mySubscription.events.slice(0, 3).map((event) => (
@@ -387,7 +386,7 @@ export function OwnerDashboard() {
                     </li>
                   ))}
                   {planBenefits.length === 0 && (
-                    <li className="text-[12.5px] text-ink-mute">No features recorded on this plan (demo).</li>
+                    <li className="text-[12.5px] text-ink-mute">No features recorded on this plan.</li>
                   )}
                 </ul>
               </div>
@@ -397,7 +396,7 @@ export function OwnerDashboard() {
                   Recent plan payments
                 </h3>
                 {myInvoices.length === 0 ? (
-                  <p className="text-[12.5px] text-ink-mute">No demo payments recorded.</p>
+                  <p className="text-[12.5px] text-ink-mute">No payments recorded.</p>
                 ) : (
                   <ul className="space-y-2">
                     {myInvoices.map((invoice) => (
@@ -473,7 +472,7 @@ export function OwnerDashboard() {
             </Link>
           </div>
           {recentRequests.length === 0 ? (
-            <p className="py-8 text-center text-sm text-ink-mute">No demo requests in scope.</p>
+            <p className="py-8 text-center text-sm text-ink-mute">No admission requests in scope.</p>
           ) : (
             <ul className="space-y-3">
               {recentRequests.map((req) => {
@@ -503,7 +502,7 @@ export function OwnerDashboard() {
             </Link>
           </div>
           {recentStudents.length === 0 ? (
-            <p className="py-8 text-center text-sm text-ink-mute">No demo students in scope.</p>
+            <p className="py-8 text-center text-sm text-ink-mute">No students in scope.</p>
           ) : (
             <ul className="space-y-3">
               {recentStudents.map((stu) => {
@@ -555,16 +554,12 @@ export function OwnerDashboard() {
         <div className="mt-6">
           <EmptyState
             title="No properties in scope"
-            description="Switch the property selector in the topbar back to All Properties to see your demo records."
+            description="Switch the property selector in the topbar back to All Properties or add a new property to get started."
             icon={<PencilLine className="h-6 w-6" aria-hidden />}
+            action={{ label: 'Add Property', to: '/owner/properties?add=1' }}
           />
         </div>
       )}
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <Wrench className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        Frontend-only demo — all figures derive from local sample data and reset on reload.
-      </p>
     </>
   )
 }

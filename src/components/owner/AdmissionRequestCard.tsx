@@ -56,7 +56,7 @@ export function AdmissionRequestCard({
         <div className="flex items-center gap-2.5 text-ink-soft">
           <Phone className="h-3.5 w-3.5 shrink-0 text-gold-dark" aria-hidden />
           <dt className="sr-only">Mobile</dt>
-          <dd>{request.studentMobile} (demo)</dd>
+          <dd>{request.studentMobile}</dd>
         </div>
         <div className="flex items-center gap-2.5 text-ink-soft">
           <CalendarDays className="h-3.5 w-3.5 shrink-0 text-gold-dark" aria-hidden />
@@ -68,7 +68,7 @@ export function AdmissionRequestCard({
       {request.status !== 'PENDING' && (
         <p className="mt-3 rounded-xl bg-ivory/60 px-3 py-2 text-[11.5px] leading-relaxed text-ink-mute">
           {request.status === 'APPROVED'
-            ? `Approved on ${request.decidedOn} — active membership granted (demo).`
+            ? `Approved on ${request.decidedOn} — active membership granted.`
             : `Rejected on ${request.decidedOn} — ${request.reason ?? 'no reason recorded'}`}
         </p>
       )}

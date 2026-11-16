@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { useAdminStore } from '../../context/AdminStore'
+import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../utils/cn'
 import { ConfirmDialog } from './ConfirmDialog'
 
@@ -19,9 +20,9 @@ const TITLES: Array<[string, string, string]> = [
   ['/admin/platform-support', 'Platform Support', 'Centralised support ticket console'],
   ['/admin/platform-reports', 'Platform Reports', 'Owners, properties, revenue and subscriptions'],
   ['/admin/platform', 'Platform Overview', 'SaaS health at a glance'],
-  ['/admin/activity-logs', 'Activity Logs', 'Audited admin actions (demo)'],
+  ['/admin/activity-logs', 'Activity Logs', 'Audited admin actions'],
   ['/admin/featured-listings', 'Featured Listings', 'Owner featured placement requests'],
-  ['/admin/advertisements', 'Advertisements', 'Platform ad campaigns (demo)'],
+  ['/admin/advertisements', 'Advertisements', 'Platform ad campaigns'],
   ['/admin/dashboard', 'Dashboard', 'Platform overview at a glance'],
   ['/admin/pgs', 'PG Management', 'Moderate every registered property'],
   ['/admin/applications', 'Owner Applications', 'Review and decide new submissions'],
@@ -32,7 +33,7 @@ const TITLES: Array<[string, string, string]> = [
   ['/admin/payments', 'Payment Records', 'RahoMitra SaaS subscription payments'],
   ['/admin/support', 'Complaints & Support', 'Platform support tickets'],
   ['/admin/notifications', 'Notifications', 'Announcements and notification history'],
-  ['/admin/reports', 'Reports & Analytics', 'Illustrative platform reports'],
+  ['/admin/reports', 'Reports & Analytics', 'Platform reports and metrics'],
   ['/admin/settings', 'Settings', 'Admin and platform configuration'],
 ]
 
@@ -48,6 +49,7 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
   const navigate = useNavigate()
   const { pgs, owners, students, applications, notifications, markAllNotificationsRead, pushToast } =
     useAdminStore()
+  const { logout } = useAuth()
 
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -153,7 +155,7 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
           {searchOpen && query.trim().length >= 2 && (
             <div className="fade-scale-in absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[19rem] overflow-hidden rounded-2xl border border-line bg-white shadow-pop">
               {results.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-ink-mute">No demo records match “{query}”.</p>
+                <p className="px-4 py-4 text-sm text-ink-mute">No records match “{query}”.</p>
               ) : (
                 <ul>
                   {results.map((hit, i) => (
@@ -173,9 +175,6 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
                           </span>
                           <span className="block text-[11px] text-ink-mute">{hit.sub}</span>
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gold-dark">
-                          Demo
-                        </span>
                       </button>
                     </li>
                   ))}
@@ -184,12 +183,6 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
             </div>
           )}
         </div>
-
-        {/* Demo mode pill */}
-        <span className="hidden shrink-0 items-center gap-1.5 rounded-full border border-gold/50 bg-gold-soft px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-gold-dark xl:inline-flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
-          Demo mode
-        </span>
 
         {/* Notifications */}
         <div className="relative">
@@ -285,7 +278,7 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
                 Super Admin
               </span>
               <span className="block text-[10px] leading-tight text-ink-mute">
-                admin@rahomitra.demo
+                {user?.email || 'admin@rahomitra.com'}
               </span>
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-ink-mute" aria-hidden />
@@ -298,9 +291,8 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
                 </span>
                 <span>
                   <span className="block text-sm font-bold text-ink">Super Admin</span>
-                  <span className="block text-[11px] text-ink-mute">admin@rahomitra.demo</span>
-                  <span className="mt-1 inline-block rounded-full bg-gold-soft px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold-dark">
-                    Demo account
+                  <span className="block text-[11px] text-ink-mute">
+                    {user?.email || 'admin@rahomitra.com'}
                   </span>
                 </span>
               </div>
@@ -347,12 +339,13 @@ export function Topbar({ collapsed, onOpenMobile, onToggleCollapse }: TopbarProp
       <ConfirmDialog
         open={logoutOpen}
         title="Logout of Super Admin?"
-        message="This ends the demo admin session and returns you to the Admin Login screen. No real session exists — this is a frontend-only demo."
+        message="Are you sure you want to log out of the RahoMitra Super Admin console?"
         confirmLabel="Logout"
         danger
-        onConfirm={() => {
+        onConfirm={async () => {
           setLogoutOpen(false)
-          navigate('/login/admin')
+          await logout()
+          navigate('/login/admin', { replace: true })
         }}
         onCancel={() => setLogoutOpen(false)}
       />

@@ -9,7 +9,6 @@ import {
   formatDate,
   monthLabel,
 } from '../../types/billing'
-import { propertyName } from '../../data/billingData'
 import { StatusBadge } from '../admin/StatusBadge'
 import { formatINR } from '../../utils/format'
 
@@ -19,6 +18,7 @@ interface InvoiceViewProps {
   payments: PaymentRecord[]
   paymentDetails: PaymentDetails
   mode: 'owner' | 'student'
+  propertyName?: string
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -47,7 +47,14 @@ function ChargeRow({ label, amount, muted }: { label: string; amount: number; mu
  * the student "My Bills" detail. Wrapped in `.print-area` so the browser
  * print dialog outputs only this card (see @media print in index.css).
  */
-export function InvoiceView({ bill, status, payments, paymentDetails, mode }: InvoiceViewProps) {
+export function InvoiceView({
+  bill,
+  status,
+  payments,
+  paymentDetails,
+  mode,
+  propertyName: customPropName,
+}: InvoiceViewProps) {
   const total = billTotal(bill)
   const remaining = billRemaining(bill)
   const discount = bill.discount
@@ -82,7 +89,7 @@ export function InvoiceView({ bill, status, payments, paymentDetails, mode }: In
           <Row label="Billing period" value={billingPeriod(bill.month)} />
           <Row label="Generated on" value={formatDate(bill.generatedOn)} />
           <Row label="Due date" value={formatDate(bill.dueDate)} />
-          <Row label="PG property" value={propertyName(bill.propertyId)} />
+          <Row label="PG property" value={customPropName || 'PG Accommodation'} />
           <Row label="Student" value={bill.studentName} />
           <Row label="Room number" value={`Room ${bill.roomNumber}`} />
           <Row label="Bed number" value={`Bed ${bill.bedLabel}`} />

@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react'
 import { BarChart3, Building2, Download, FileText, GraduationCap, IndianRupee, Layers, Printer, Users } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
-import { ADMIN_PGS, OWNERS } from '../../data/adminData'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect } from '../../components/admin/Filters'
@@ -22,8 +20,6 @@ const GROUPS: Array<{ id: ReportGroup; label: string; icon: typeof Users }> = [
   { id: 'revenue', label: 'Revenue Reports', icon: IndianRupee },
   { id: 'subscriptions', label: 'Subscription Reports', icon: Layers },
 ]
-
-const CITIES = ['All cities', 'Jaipur', 'Delhi', 'Lucknow', 'Pune', 'Indore']
 
 interface OwnerRow {
   id: string
@@ -72,62 +68,82 @@ interface SubscriptionRow {
   suspended?: boolean
 }
 
-/** /admin/platform-reports — illustrative report groups with CSV export + print. */
+/** /admin/platform-reports — platform report groups with CSV export + print. */
 export function PlatformReports() {
   useDocumentTitle('Platform Reports')
 
-  const { subscriptions, plans, featuredRequests, pushToast } = useAdminStore()
+  const { pgs, owners, students, subscriptions, plans, featuredRequests, pushToast } = useAdminStore()
   const [group, setGroup] = useState<ReportGroup>('owners')
   const [city, setCity] = useState('All cities')
-  const [fromDate, setFromDate] = useState('2026-01-01')
-  const [toDate, setToDate] = useState('2026-05-14')
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - 1)
+    return d.toISOString().slice(0, 10)
+  })
+  const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10))
+
+  const availableCities = useMemo(() => {
+    const set = new Set<string>()
+    pgs.forEach((p) => p.city && set.add(p.city))
+    owners.forEach((o) => o.city && set.add(o.city))
+    return ['All cities', ...Array.from(set).sort()]
+  }, [pgs, owners])
 
   const cityMatch = (rowCity: string) => city === 'All cities' || rowCity === city
-  const ownerCity = (ownerName: string) => OWNERS.find((o) => o.name === ownerName)?.city ?? 'Jaipur'
+  const ownerCity = (ownerName: string) => owners.find((o) => o.name === ownerName)?.city ?? ''
   const planName = (planId: string) => plans.find((p) => p.id === planId)?.name ?? planId
 
   /* ---------------------------------------------- owner report rows */
   const ownerRows: OwnerRow[] = useMemo(
     () =>
-      OWNERS.filter((o) => cityMatch(o.city)).map((o) => ({
+      owners.filter((o) => cityMatch(o.city)).map((o) => ({
         id: o.id,
         name: o.name,
         email: o.email,
         city: o.city,
-        properties: o.pgIds.length,
+        properties: (o.pgIds || []).length,
         joined: o.joinedOn,
         status: o.status,
       })),
-    [city],
+    [owners, city],
   )
 
   /* ------------------------------------------- property report rows */
   const propertyRows: PropertyRow[] = useMemo(
     () =>
-      ADMIN_PGS.filter((p) => cityMatch(p.city)).map((p) => ({
+      pgs.filter((p) => cityMatch(p.city)).map((p) => ({
         id: p.id,
         name: p.name,
         owner: p.ownerName,
         city: p.city,
         locality: p.locality,
         rent: p.rent,
-        beds: p.roomCategories.reduce((sum, r) => sum + (Number(r.sharing) || 0), 0),
+        beds: (p.roomCategories || []).reduce((sum, r) => sum + (Number(r.sharing) || 0), 0),
         status: p.status,
       })),
-    [city],
+    [pgs, city],
   )
 
   /* -------------------------------------------- student report rows */
   const studentRows: StudentRow[] = useMemo(() => {
-    const demoStudents: StudentRow[] = [
-      { id: 'stu-13', name: 'Aarav Meena', city: 'Jaipur', pg: 'Sunrise Boys Hostel', rent: 6500, status: 'ACTIVE' },
-      { id: 'stu-14', name: 'Diya Sharma', city: 'Jaipur', pg: 'Green Nest PG', rent: 5200, status: 'ACTIVE' },
-      { id: 'stu-15', name: 'Kabir Verma', city: 'Delhi', pg: 'Urban Habitat', rent: 7800, status: 'ACTIVE' },
-      { id: 'stu-16', name: 'Sara Khan', city: 'Pune', pg: 'Sunrise Boys Hostel', rent: 6100, status: 'INACTIVE' },
-      { id: 'stu-17', name: 'Rohan Das', city: 'Jaipur', pg: 'Green Nest PG', rent: 4900, status: 'ACTIVE' },
-    ]
-    return demoStudents.filter((s) => cityMatch(s.city))
-  }, [city])
+    return students
+      .filter((s) => {
+        const pg = pgs.find((p) => p.id === s.pgId || p.name === s.pgName)
+        const studentCity = pg?.city ?? ''
+        return cityMatch(studentCity)
+      })
+      .map((s) => {
+        const pg = pgs.find((p) => p.id === s.pgId || p.name === s.pgName)
+        return {
+          id: s.id,
+          name: s.name,
+          city: pg?.city ?? '—',
+          pg: s.pgName || pg?.name || '—',
+          rent: s.monthlyRent ?? 0,
+          status: s.status,
+        }
+      })
+  }, [students, pgs, city])
 
   /* ------------------------------------------- revenue report rows */
   const revenueRows: RevenueRow[] = useMemo(() => {
@@ -195,11 +211,11 @@ export function PlatformReports() {
     anchor.download = filename
     anchor.click()
     URL.revokeObjectURL(url)
-    pushToast(`${filename} exported (demo CSV).`)
+    pushToast(`${filename} exported.`)
   }
 
   const handlePrint = () => {
-    pushToast('Opening print preview (demo).', 'info')
+    pushToast('Opening print preview.', 'info')
     window.print()
   }
 
@@ -283,7 +299,7 @@ export function PlatformReports() {
     <>
       <AdminPageHeader
         title="Platform Reports"
-        description="Illustrative report groups for owners, properties, students, revenue and subscriptions — filter by city and date range, export CSV or print."
+        description="Platform report groups for owners, properties, students, revenue and subscriptions — filter by city and date range, export CSV or print."
         actions={
           <>
             <button
@@ -305,8 +321,6 @@ export function PlatformReports() {
           </>
         }
       />
-
-      <DemoBanner message="every figure below is illustrative demo data — no real financial reporting, database or analytics engine is connected." />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Owners in report" value={ownerRows.length} icon={Users} hint="Filtered rows" />
@@ -360,7 +374,7 @@ export function PlatformReports() {
             label="City"
             value={city}
             onChange={setCity}
-            options={CITIES.map((c) => ({ value: c, label: c }))}
+            options={availableCities.map((c) => ({ value: c, label: c }))}
           />
         </div>
         <p className="flex items-center gap-2 text-[11.5px] text-ink-mute">
@@ -387,11 +401,6 @@ export function PlatformReports() {
           <DataTable columns={subscriptionColumns} rows={subscriptionRows} rowKey={(r) => r.id} pageSize={8} {...emptyProps} />
         )}
       </div>
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <BarChart3 className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        CSV export is generated entirely in your browser — no data leaves this demo.
-      </p>
     </>
   )
 }

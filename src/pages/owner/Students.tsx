@@ -3,7 +3,6 @@ import { GraduationCap, Mail, MapPin, Phone, CalendarDays, BedDouble } from 'luc
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { StudentTable } from '../../components/owner/StudentTable'
@@ -17,7 +16,7 @@ const MEMBERSHIP_OPTIONS = [
   { value: 'INACTIVE', label: 'Inactive' },
 ]
 
-/** /owner/students — student records scoped to the demo owner's properties. */
+/** /owner/students — student records scoped to the owner's properties. */
 export function Students() {
   useDocumentTitle('Student Management')
 
@@ -37,7 +36,7 @@ export function Students() {
     [rooms, scopedPropertyIds],
   )
 
-  // Only the demo owner's students, further narrowed by the switcher scope.
+  // Only the owner's students, further narrowed by the switcher scope.
   const ownStudents = useMemo(
     () => students.filter((s) => scopedPropertyIds.includes(s.propertyId)),
     [students, scopedPropertyIds],
@@ -77,10 +76,8 @@ export function Students() {
     <>
       <AdminPageHeader
         title="Student Management"
-        description="Students staying across your demo PGs — search, filter, view profiles and manage memberships."
+        description="Students staying across your PGs — search, filter, view profiles and manage memberships."
       />
-
-      <DemoBanner message="all student names, emails, mobile numbers and colleges are clearly fictional demo records — no real identities are used." />
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard label="Total Students" value={ownStudents.length} icon={GraduationCap} tone="ink" />
@@ -130,7 +127,7 @@ export function Students() {
       <Modal
         open={viewing !== null}
         title={viewing?.name ?? 'Student profile'}
-        subtitle="Fictional demo record — local React state only."
+        subtitle="Resident information and stay history."
         onClose={() => setViewing(null)}
         footer={
           viewing && (
@@ -181,7 +178,7 @@ export function Students() {
 
             <dl className="grid gap-3 sm:grid-cols-2">
               {[
-                { icon: Phone, label: 'Contact', value: `${viewing.mobile} (demo)` },
+                { icon: Phone, label: 'Contact', value: viewing.mobile },
                 { icon: Mail, label: 'Email', value: viewing.email },
                 { icon: GraduationCap, label: 'College', value: viewing.college },
                 { icon: MapPin, label: 'City', value: viewing.city },
@@ -215,7 +212,7 @@ export function Students() {
                 Associated PG: <strong>{viewingProperty?.name ?? '—'}</strong> · admitted on{' '}
                 <strong>{viewing.admissionDate}</strong> · membership{' '}
                 <strong>{viewing.membership}</strong>. Changing membership to INACTIVE releases the
-                allocated bed back to availability (demo capacity rule).
+                allocated bed back to availability.
               </p>
             </div>
           </div>

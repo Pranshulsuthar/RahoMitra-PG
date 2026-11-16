@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Eye, Image as ImageIcon, Inbox, Plus, Send, X } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { useAuth } from '../../context/AuthContext'
 import { useCommunicationStore } from '../../context/CommunicationStore'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatCard } from '../../components/admin/StatCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Button } from '../../components/common/Button'
@@ -11,7 +12,6 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { Modal } from '../../components/admin/Modal'
 import { FormInput, FormSelect, FormTextarea } from '../../components/owner/FormInput'
 import { ComplaintDetailModal } from '../../components/communication/ComplaintDetailModal'
-import { DEMO_STUDENT_ID, commPropertyName } from '../../data/communicationData'
 import {
   COMPLAINT_CATEGORY_LABELS,
   COMPLAINT_STATUS_LABELS,
@@ -39,17 +39,16 @@ const EMPTY_FORM: SubmitForm = {
   image: '',
 }
 
-/** The student's accommodation (Section 05 demo constants). */
-const MY_PROPERTY_ID = 'pg-001'
-const MY_ROOM = '204'
-
 /**
- * /student/complaints — Section 07 student ticket desk. The student submits
- * a complaint against their own PG, then tracks status, history and owner
- * responses. Official status/priority controls are owner-only by design.
+ * /student/complaints — Student ticket desk. The student submits
+ * a complaint against their enrolled PG, then tracks status and owner responses.
  */
 export function StudentComplaints() {
   useDocumentTitle('My Complaints')
+
+  const { user } = useAuth()
+  const currentStudentId = user?.id || ''
+  const studentName = user?.fullName || 'Student'
 
   const {
     complaints,
@@ -58,8 +57,7 @@ export function StudentComplaints() {
     pushToast,
   } = useCommunicationStore()
 
-  const studentId = DEMO_STUDENT_ID
-
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
   const [filter, setFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [submitOpen, setSubmitOpen] = useState(false)
@@ -67,9 +65,19 @@ export function StudentComplaints() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    fetchStudentAccommodation()
+      .then((acc) => setLiveAccommodation(acc))
+      .catch(() => setLiveAccommodation(null))
+  }, [])
+
+  const propertyId = liveAccommodation?.property.id || ''
+  const propertyName = liveAccommodation?.property.name || 'My PG'
+  const roomNumber = liveAccommodation?.room.number || 'N/A'
+
   const myComplaints = useMemo(
-    () => complaints.filter((c) => c.studentId === studentId),
-    [complaints, studentId],
+    () => (currentStudentId ? complaints.filter((c) => c.studentId === currentStudentId) : []),
+    [complaints, currentStudentId],
   )
 
   const filtered = useMemo(() => {
@@ -95,6 +103,10 @@ export function StudentComplaints() {
   ).length
 
   const openSubmit = () => {
+    if (!liveAccommodation) {
+      pushToast('You must be enrolled in a PG to submit complaints.', 'error')
+      return
+    }
     setForm(EMPTY_FORM)
     setErrors({})
     setSubmitOpen(true)
@@ -114,17 +126,17 @@ export function StudentComplaints() {
   const handleFile = (file: File | undefined) => {
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      pushToast('Only image files can be attached (demo).', 'error')
+      pushToast('Only image files can be attached.', 'error')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      pushToast('Image must be 5 MB or smaller (demo).', 'error')
+      pushToast('Image must be 5 MB or smaller.', 'error')
       return
     }
     const reader = new FileReader()
     reader.onload = () => {
       setForm((f) => ({ ...f, image: String(reader.result ?? '') }))
-      pushToast('Image attached — preview stays in this browser only (demo).', 'info')
+      pushToast('Image attached.', 'info')
     }
     reader.readAsDataURL(file)
   }
@@ -132,8 +144,8 @@ export function StudentComplaints() {
   const submit = () => {
     if (!validate()) return
     const complaint = submitComplaint({
-      propertyId: MY_PROPERTY_ID,
-      studentId,
+      propertyId: propertyId || 'default-property',
+      studentId: currentStudentId,
       category: form.category,
       subject: form.subject.trim(),
       description: form.description.trim(),
@@ -142,7 +154,7 @@ export function StudentComplaints() {
     })
     setSubmitOpen(false)
     pushToast(
-      `Complaint ${complaint.id} submitted — status is now Submitted (demo).`,
+      `Complaint ${complaint.id} submitted successfully.`,
       'success',
     )
   }
@@ -151,14 +163,13 @@ export function StudentComplaints() {
     <div>
       <AdminPageHeader
         title="My Complaints"
-        description="Raise an issue in your PG and track every update the owner makes — demo tickets only."
+        description="Raise an issue regarding room, food, or amenities, and track owner updates."
         actions={
           <Button variant="gold" size="md" onClick={openSubmit}>
             <Plus size={16} /> Submit Complaint
           </Button>
         }
       />
-      <DemoBanner message="complaints, statuses and owner responses shown here are illustrative samples — nothing is raised with a real PG owner." />
 
       {/* stats */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -204,12 +215,12 @@ export function StudentComplaints() {
           <EmptyState
             icon={<Inbox size={40} strokeWidth={1.4} />}
             title={
-              myComplaints.length === 0 ? 'No complaints yet' : 'Nothing here'
+              myComplaints.length === 0 ? 'No complaints registered' : 'Nothing here'
             }
             description={
               myComplaints.length === 0
-                ? 'If something is broken in your PG, raise a complaint and the owner will track it (demo).'
-                : 'No demo complaints match this filter.'
+                ? 'If something is damaged or needs maintenance in your PG, raise a complaint to notify management.'
+                : 'No complaints match the selected filter.'
             }
             action={
               myComplaints.length === 0 ? (
@@ -252,12 +263,12 @@ export function StudentComplaints() {
                   <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-muted">
                     <span>Submitted {fmtDate(c.submittedOn)}</span>
                     <span>
-                      {commPropertyName(c.propertyId)} · Room {c.roomNumber}
+                      {propertyName} · Room {c.roomNumber || roomNumber}
                     </span>
                     <span>Status: {COMPLAINT_STATUS_LABELS[c.status]}</span>
                     {c.image !== '' && (
                       <span className="inline-flex items-center gap-1">
-                        <ImageIcon size={12} /> 1 attachment (local)
+                        <ImageIcon size={12} /> 1 attachment
                       </span>
                     )}
                   </div>
@@ -276,7 +287,7 @@ export function StudentComplaints() {
       <Modal
         open={submitOpen}
         title="Submit Complaint"
-        subtitle={`Raising against ${commPropertyName(MY_PROPERTY_ID)} · Room ${MY_ROOM} (auto-detected from your accommodation, demo).`}
+        subtitle={`Raising against ${propertyName} · Room ${roomNumber}`}
         onClose={() => setSubmitOpen(false)}
         size="lg"
         footer={
@@ -293,17 +304,17 @@ export function StudentComplaints() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-line bg-ivory/50 px-4 py-3">
             <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-mute">
-              Property (auto)
+              Property
             </p>
             <p className="mt-1 text-[13.5px] font-semibold text-ink">
-              {commPropertyName(MY_PROPERTY_ID)}
+              {propertyName}
             </p>
           </div>
           <div className="rounded-2xl border border-line bg-ivory/50 px-4 py-3">
             <p className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-mute">
-              Room (auto)
+              Room
             </p>
-            <p className="mt-1 text-[13.5px] font-semibold text-ink">Room {MY_ROOM}</p>
+            <p className="mt-1 text-[13.5px] font-semibold text-ink">Room {roomNumber}</p>
           </div>
         </div>
 
@@ -328,7 +339,7 @@ export function StudentComplaints() {
               value,
               label: PRIORITY_LABELS[value],
             }))}
-            hint="How badly is it affecting you?"
+            hint="How urgently does this need attention?"
           />
         </div>
 
@@ -339,7 +350,7 @@ export function StudentComplaints() {
             required
             value={form.subject}
             onChange={(v) => setForm((f) => ({ ...f, subject: v }))}
-            placeholder="e.g. AC not cooling in Room 204"
+            placeholder="e.g. AC not cooling in room"
             error={errors.subject}
             hint={`${form.subject.length}/120 characters`}
           />
@@ -354,12 +365,12 @@ export function StudentComplaints() {
             maxLength={600}
             value={form.description}
             onChange={(v) => setForm((f) => ({ ...f, description: v }))}
-            placeholder="What is broken, since when, and how does it affect you? (demo)…"
+            placeholder="Describe what is broken, where, and any relevant details…"
             error={errors.description}
           />
         </div>
 
-        {/* optional local image */}
+        {/* optional image */}
         <div className="mt-4">
           <p className="form-label">
             Photo (optional)
@@ -373,7 +384,7 @@ export function StudentComplaints() {
             className="block w-full cursor-pointer rounded-2xl border border-dashed border-line bg-ivory/40 file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-forest file:px-4 file:py-2 file:text-[12px] file:font-semibold file:text-ivory hover:border-gold/60"
           />
           <p className="mt-1.5 text-[11px] text-muted">
-            Max 5 MB · the preview is stored in this browser only, never uploaded (demo).
+            Max 5 MB · JPEG or PNG format.
           </p>
 
           {form.image && (
@@ -385,7 +396,6 @@ export function StudentComplaints() {
               />
               <div>
                 <p className="text-[12.5px] font-semibold text-ink">Attachment ready</p>
-                <p className="text-[11px] text-muted">Local preview · demo</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -406,16 +416,17 @@ export function StudentComplaints() {
       <ComplaintDetailModal
         complaint={selected}
         viewer="STUDENT"
-        viewerName="Rahul Sharma (demo)"
+        viewerName={studentName}
         onClose={() => setSelectedId(null)}
         onStatusChange={() => undefined}
         onPriorityChange={() => undefined}
         onComment={(body: string) => {
           if (!selected) return
-          addComplaintComment(selected.id, 'STUDENT', 'Rahul Sharma (demo)', body, 'Student commented')
-          pushToast('Comment added to the complaint (demo).', 'success')
+          addComplaintComment(selected.id, 'STUDENT', studentName, body, 'Student commented')
+          pushToast('Comment added.', 'success')
         }}
       />
     </div>
   )
 }
+

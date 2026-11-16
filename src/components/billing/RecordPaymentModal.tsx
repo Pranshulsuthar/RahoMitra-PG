@@ -12,7 +12,6 @@ import {
   formatDate,
   monthLabel,
 } from '../../types/billing'
-import { BILLING_TODAY } from '../../data/billingData'
 import { formatINR } from '../../utils/format'
 
 interface RecordPaymentModalProps {
@@ -45,7 +44,7 @@ export function RecordPaymentModal({
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<PaymentMethod>('UPI')
   const [reference, setReference] = useState('')
-  const [date, setDate] = useState(BILLING_TODAY)
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -72,7 +71,7 @@ export function RecordPaymentModal({
     setConfirmOpen(false)
     setMethod('UPI')
     setReference('')
-    setDate(BILLING_TODAY)
+    setDate(new Date().toISOString().slice(0, 10))
     setNotes('')
     const initial = defaultBillId ?? bills[0]?.id ?? ''
     setBillId(initial)

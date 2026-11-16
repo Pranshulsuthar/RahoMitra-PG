@@ -3,7 +3,6 @@ import { BedDouble, LayoutGrid, Wrench } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { aggregateRooms, useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { BedLegend, BED_STATUS_STYLES, BED_DOT_STYLES } from '../../components/owner/BedStatusIndicator'
@@ -88,8 +87,6 @@ export function Availability() {
         description={`Visual bed availability across ${scopeLabel} — click any bed to cycle its status.`}
       />
 
-      <DemoBanner message="availability reflects local demo records only — never real-world occupancy. Changes made here update the dashboard and property previews instantly." />
-
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard label="Total Capacity" value={totals.totalBeds} icon={LayoutGrid} tone="ink" />
         <StatisticCard label="Occupied Beds" value={totals.occupied} icon={BedDouble} tone="gold" />
@@ -145,7 +142,7 @@ export function Availability() {
       {filteredRooms.length === 0 ? (
         <EmptyState
           title="No rooms match"
-          description="Adjust the property, room or status filters — the demo dataset may be scoped to another property."
+          description="Adjust the property, room or status filters to view rooms."
           icon={<LayoutGrid className="h-6 w-6" aria-hidden />}
         />
       ) : (
@@ -193,7 +190,7 @@ export function Availability() {
                       key={bed.id}
                       type="button"
                       onClick={() => changeBed(bed, room.number)}
-                      title={`Bed ${bed.label}: ${BED_STATUS_LABELS[bed.status]} — click to change (demo)`}
+                      title={`Bed ${bed.label}: ${BED_STATUS_LABELS[bed.status]} — click to change`}
                       className={
                         'flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-center transition-all hover:-translate-y-0.5 ' +
                         BED_STATUS_STYLES[bed.status]

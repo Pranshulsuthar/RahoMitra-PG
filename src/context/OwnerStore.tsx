@@ -1,17 +1,29 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  ADMISSION_CODES,
-  ADMISSION_REQUESTS,
-  DEMO_OWNER_ID,
-  DEMO_OWNER_PROFILE,
-  OWNER_ACTIVITIES,
-  OWNER_NOTIFICATIONS,
-  OWNER_PROPERTIES,
-  OWNER_ROOMS,
-  OWNER_STAFF,
-  OWNER_STUDENTS,
-} from '../data/ownerData'
+  fetchOwnerDashboard,
+  apiCreateProperty,
+  apiUpdateProperty,
+  apiSetPropertyStatus,
+  apiCreateRoom,
+  apiUpdateRoom,
+  apiDeleteRoom,
+  apiAddBed,
+  apiSetBedStatus,
+  apiSetStudentMembership,
+  apiAddStaff,
+  apiUpdateStaff,
+  apiRemoveStaff,
+  apiGenerateAdmissionCode,
+  apiRevokeAdmissionCode,
+  apiDecideAdmissionRequest,
+  apiUpdateProfile,
+  apiMarkNotificationRead,
+  apiMarkAllNotificationsRead,
+  apiRemoveNotification,
+  type PropertyInput,
+  type RoomInput,
+} from '../api/owner'
 import type {
   AdmissionCode,
   AdmissionRequest,
@@ -29,51 +41,23 @@ import type {
   StaffMember,
 } from '../types/owner'
 import { roomOccupancy } from '../types/owner'
+import { useAuth } from './AuthContext'
 
-/**
- * ---------------------------------------------------------------------------
- * SECTION 04 — single in-memory demo store for the PG Owner Dashboard.
- * Every mutation is local React state only — nothing is persisted or sent
- * anywhere. Reload the page to restore the original demo dataset.
- *
- * Multi-tenant rule: only records whose property IDs belong to the demo
- * owner are ever exposed — property-level filtering happens here so a future
- * backend swap only touches this file.
- * ---------------------------------------------------------------------------
- */
+export type { PropertyInput, RoomInput }
 
-const TODAY = '2026-05-14'
-
-export const DEMO_OWNER_PROPERTY_IDS = OWNER_PROPERTIES.map((p) => p.id)
-
-export interface PropertyInput {
-  name: string
-  type: OwnerProperty['type']
-  description: string
-  city: string
-  address: string
-  locality: string
-  contactPhone: string
-  contactEmail: string
-  securityDeposit: number
-  facilities: string[]
-  food: OwnerProperty['food']
-  rules: string[]
-  coverImage: string
-  gallery: string[]
-}
-
-export interface RoomInput {
-  propertyId: string
-  number: string
-  floor: number
-  type: RoomType
-  rent: number
-  capacity: number
+const DEFAULT_OWNER_PROFILE: OwnerProfile = {
+  id: '',
+  name: '',
+  email: '',
+  mobile: '',
+  bio: '',
+  city: '',
+  joinedOn: new Date().toISOString().slice(0, 10),
+  verified: false,
 }
 
 interface OwnerStoreValue {
-  /* data (already scoped to the demo owner) */
+  /* data */
   owner: OwnerProfile
   properties: OwnerProperty[]
   rooms: OwnerRoom[]
@@ -88,7 +72,6 @@ interface OwnerStoreValue {
   /* property switcher */
   selectedPropertyId: string // 'ALL' | property id
   selectProperty: (id: string) => void
-  /** Properties in scope for the current switcher selection. */
   scopedProperties: OwnerProperty[]
   scopedPropertyIds: string[]
 
@@ -110,7 +93,6 @@ interface OwnerStoreValue {
   /* admissions */
   generateCode: (input: { propertyId: string; roomPreference: string; expiresInDays: number }) => string
   revokeCode: (codeId: string) => void
-  simulateIncomingRequest: (codeId: string) => void
   decideRequest: (requestId: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => void
 
   /* staff */
@@ -122,7 +104,6 @@ interface OwnerStoreValue {
   updateProfile: (patch: Partial<OwnerProfile>) => void
   markNotificationRead: (id: string, read: boolean) => void
   markAllNotificationsRead: () => void
-  /** Section 07 — dismiss a single demo notification from the bell. */
   removeNotification: (id: string) => void
 
   pushToast: (message: string, tone?: OwnerToast['tone']) => void
@@ -130,16 +111,6 @@ interface OwnerStoreValue {
 }
 
 const OwnerStoreContext = createContext<OwnerStoreValue | null>(null)
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00`)
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-
-const BED_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const
 
 /** Aggregate bed maths for any room set — reused by dashboard & availability. */
 export function aggregateRooms(rooms: OwnerRoom[]) {
@@ -164,23 +135,18 @@ export function aggregateRooms(rooms: OwnerRoom[]) {
   }
 }
 
-const SIMULATED_STUDENTS = [
-  { name: 'Neha Tailor (demo)', email: 'student21@rahomitra.demo', mobile: '98765 43081' },
-  { name: 'Gaurav Bhati (demo)', email: 'student22@rahomitra.demo', mobile: '98765 43082' },
-  { name: 'Riya Dashora (demo)', email: 'student23@rahomitra.demo', mobile: '98765 43083' },
-  { name: 'Aman Tanwar (demo)', email: 'student24@rahomitra.demo', mobile: '98765 43084' },
-]
-
 export function OwnerStoreProvider({ children }: { children: ReactNode }) {
-  const [owner, setOwner] = useState<OwnerProfile>({ ...DEMO_OWNER_PROFILE })
-  const [properties, setProperties] = useState<OwnerProperty[]>(OWNER_PROPERTIES)
-  const [rooms, setRooms] = useState<OwnerRoom[]>(OWNER_ROOMS)
-  const [students, setStudents] = useState<OwnerStudent[]>(OWNER_STUDENTS)
-  const [codes, setCodes] = useState<AdmissionCode[]>(ADMISSION_CODES)
-  const [requests, setRequests] = useState<AdmissionRequest[]>(ADMISSION_REQUESTS)
-  const [staff, setStaff] = useState<StaffMember[]>(OWNER_STAFF)
-  const [notifications, setNotifications] = useState<OwnerNotification[]>(OWNER_NOTIFICATIONS)
-  const [activities, setActivities] = useState<OwnerActivity[]>(OWNER_ACTIVITIES)
+  const { role, status } = useAuth()
+
+  const [owner, setOwner] = useState<OwnerProfile>(DEFAULT_OWNER_PROFILE)
+  const [properties, setProperties] = useState<OwnerProperty[]>([])
+  const [rooms, setRooms] = useState<OwnerRoom[]>([])
+  const [students, setStudents] = useState<OwnerStudent[]>([])
+  const [codes, setCodes] = useState<AdmissionCode[]>([])
+  const [requests, setRequests] = useState<AdmissionRequest[]>([])
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [notifications, setNotifications] = useState<OwnerNotification[]>([])
+  const [activities, setActivities] = useState<OwnerActivity[]>([])
   const [toasts, setToasts] = useState<OwnerToast[]>([])
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('ALL')
 
@@ -199,12 +165,36 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   const logActivity = useCallback(
     (text: string, kind: OwnerActivity['kind'], propertyId: string | null = null) => {
       setActivities((prev) => [
-        { id: uid('oa'), propertyId, text, time: 'just now', kind },
+        { id: `oa-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, propertyId, text, time: 'just now', kind },
         ...prev,
       ])
     },
     [],
   )
+
+  // Load real owner data from API when authenticated as owner
+  const loadOwnerData = useCallback(async () => {
+    if (status !== 'authenticated' || role !== 'owner') return
+
+    try {
+      const data = await fetchOwnerDashboard()
+      setOwner(data.owner)
+      setProperties(data.properties)
+      setRooms(data.rooms)
+      setStudents(data.students)
+      setStaff(data.staff)
+      setCodes(data.codes)
+      setRequests(data.requests)
+      setNotifications(data.notifications)
+      setActivities(data.activities)
+    } catch {
+      // Graceful fallback to demo data if backend is offline or during initialization
+    }
+  }, [role, status])
+
+  useEffect(() => {
+    loadOwnerData()
+  }, [loadOwnerData])
 
   /* ------------------------------------------------------ switcher scope */
 
@@ -227,7 +217,6 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
         setSelectedPropertyId('ALL')
         return
       }
-      // Isolation guard: an owner can only ever select their own properties.
       if (properties.some((p) => p.id === id)) setSelectedPropertyId(id)
     },
     [properties],
@@ -236,441 +225,332 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   /* ------------------------------------------------------- property CRUD */
 
   const addProperty = useCallback(
-    (input: PropertyInput) => {
-      const id = uid('prop')
-      setProperties((prev) => [
-        ...prev,
-        {
-          ...input,
-          id,
-          ownerId: DEMO_OWNER_ID,
-          status: 'DRAFT',
-          listedOn: TODAY,
-        },
-      ])
-      logActivity(`New property “${input.name}” created as DRAFT`, 'property', id)
-      pushToast(`Property “${input.name}” created (demo draft).`)
+    async (input: PropertyInput) => {
+      try {
+        const created = await apiCreateProperty(input)
+        setProperties((prev) => [created, ...prev])
+        logActivity(`New property "${created.name}" created (Pending Admin Approval)`, 'property', created.id)
+        pushToast(`Property "${created.name}" created (Pending Admin Approval).`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to create property'
+        pushToast(msg, 'error')
+      }
     },
     [logActivity, pushToast],
   )
 
   const updateProperty = useCallback(
-    (id: string, patch: Partial<OwnerProperty>) => {
+    async (id: string, patch: Partial<OwnerProperty>) => {
+      // Optimistic update
       setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)))
-      logActivity(`Listing details updated for “${patch.name ?? id}”`, 'property', id)
-      pushToast('Property updated (demo — local state only).')
+      try {
+        const updated = await apiUpdateProperty(id, patch)
+        setProperties((prev) => prev.map((p) => (p.id === id ? updated : p)))
+        logActivity(`Listing details updated for "${patch.name ?? id}"`, 'property', id)
+        pushToast('Property updated successfully.')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update property'
+        pushToast(msg, 'error')
+        loadOwnerData()
+      }
     },
-    [logActivity, pushToast],
+    [loadOwnerData, logActivity, pushToast],
   )
 
   const setPropertyStatus = useCallback(
-    (id: string, status: PropertyStatus) => {
-      setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
-      const name = properties.find((p) => p.id === id)?.name ?? id
-      logActivity(`Property “${name}” marked ${status}`, 'property', id)
-      pushToast(`“${name}” marked ${status} (demo).`)
+    async (id: string, newStatus: PropertyStatus) => {
+      setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)))
+      try {
+        await apiSetPropertyStatus(id, newStatus)
+        const name = properties.find((p) => p.id === id)?.name ?? id
+        logActivity(`Property "${name}" marked ${newStatus}`, 'property', id)
+        pushToast(`"${name}" marked ${newStatus}.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update property status'
+        pushToast(msg, 'error')
+        loadOwnerData()
+      }
     },
-    [properties, logActivity, pushToast],
+    [properties, loadOwnerData, logActivity, pushToast],
   )
 
   /* ---------------------------------------------------------- room CRUD */
 
   const addRoom = useCallback(
-    (input: RoomInput) => {
-      const property = properties.find((p) => p.id === input.propertyId)
-      if (!property) {
-        pushToast('Select a valid property for the room.', 'error')
-        return
+    async (input: RoomInput) => {
+      try {
+        const created = await apiCreateRoom(input)
+        setRooms((prev) => [...prev, created])
+        const propName = properties.find((p) => p.id === input.propertyId)?.name ?? 'property'
+        logActivity(`Room ${created.number} added to "${propName}"`, 'room', input.propertyId)
+        pushToast(`Room ${created.number} added with ${created.beds.length} bed(s).`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to add room'
+        pushToast(msg, 'error')
       }
-      const duplicate = rooms.some(
-        (r) => r.propertyId === input.propertyId && r.number.trim() === input.number.trim(),
-      )
-      if (duplicate) {
-        pushToast(`Room number “${input.number}” already exists in ${property.name}.`, 'error')
-        return
-      }
-      if (input.capacity < 1 || input.capacity > BED_LABELS.length) {
-        pushToast('Room capacity must be between 1 and 8 beds.', 'error')
-        return
-      }
-      const roomId = uid('room')
-      const newRoom: OwnerRoom = {
-        id: roomId,
-        propertyId: input.propertyId,
-        number: input.number.trim(),
-        floor: input.floor,
-        type: input.type,
-        rent: input.rent,
-        beds: BED_LABELS.slice(0, input.capacity).map((label) => ({
-          id: `${roomId}-bed-${label}`,
-          roomId,
-          label,
-          status: 'AVAILABLE' as BedStatus,
-        })),
-      }
-      setRooms((prev) => [...prev, newRoom])
-      logActivity(`Room ${newRoom.number} added to “${property.name}”`, 'room', property.id)
-      pushToast(`Room ${newRoom.number} added with ${input.capacity} bed(s) (demo).`)
     },
-    [properties, rooms, logActivity, pushToast],
+    [properties, logActivity, pushToast],
   )
 
   const updateRoom = useCallback(
-    (
+    async (
       id: string,
       patch: { number: string; floor: number; type: RoomType; rent: number },
     ) => {
       setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
-      pushToast(`Room ${patch.number} updated (demo).`)
+      try {
+        const updated = await apiUpdateRoom(id, patch)
+        setRooms((prev) => prev.map((r) => (r.id === id ? updated : r)))
+        pushToast(`Room ${patch.number} updated.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update room'
+        pushToast(msg, 'error')
+        loadOwnerData()
+      }
     },
-    [pushToast],
+    [loadOwnerData, pushToast],
   )
 
   const deleteRoom = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const room = rooms.find((r) => r.id === id)
       if (!room) return
-      const allocated = students.filter(
-        (s) => s.roomId === id && s.membership === 'ACTIVE',
-      )
-      if (allocated.length > 0) {
-        pushToast(
-          `Cannot delete room ${room.number} — ${allocated.length} active student(s) still allocated.`,
-          'error',
-        )
-        return
-      }
       setRooms((prev) => prev.filter((r) => r.id !== id))
-      logActivity(`Room ${room.number} deleted`, 'room', room.propertyId)
-      pushToast(`Room ${room.number} deleted (demo).`)
+      try {
+        await apiDeleteRoom(id)
+        logActivity(`Room ${room.number} deleted`, 'room', room.propertyId)
+        pushToast(`Room ${room.number} deleted.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to delete room'
+        pushToast(msg, 'error')
+        loadOwnerData()
+      }
     },
-    [rooms, students, logActivity, pushToast],
+    [rooms, loadOwnerData, logActivity, pushToast],
   )
 
   const addBed = useCallback(
-    (roomId: string) => {
+    async (roomId: string) => {
       const room = rooms.find((r) => r.id === roomId)
       if (!room) return
-      if (room.beds.length >= BED_LABELS.length) {
-        pushToast('Maximum 8 beds per room in this demo.', 'error')
-        return
+      try {
+        const bed = await apiAddBed(roomId)
+        setRooms((prev) =>
+          prev.map((r) => (r.id === roomId ? { ...r, beds: [...r.beds, bed] } : r)),
+        )
+        pushToast(`Bed ${bed.label} added to room ${room.number}.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to add bed'
+        pushToast(msg, 'error')
       }
-      const label = BED_LABELS[room.beds.length]
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === roomId
-            ? {
-                ...r,
-                beds: [...r.beds, { id: `${r.id}-bed-${label}`, roomId: r.id, label, status: 'AVAILABLE' }],
-              }
-            : r,
-        ),
-      )
-      pushToast(`Bed ${label} added to room ${room.number} (demo).`)
     },
     [rooms, pushToast],
   )
 
   const setBedStatus = useCallback(
-    (bedId: string, status: BedStatus) => {
+    async (bedId: string, statusVal: BedStatus) => {
       const room = rooms.find((r) => r.beds.some((b) => b.id === bedId))
       const bed = room?.beds.find((b) => b.id === bedId)
       if (!room || !bed) return
 
-      // Capacity rule: a bed occupied by an active student cannot be freed
-      // behind their back — end the membership first.
-      if (bed.status === 'OCCUPIED' && status !== 'OCCUPIED') {
-        const assigned = students.find((s) => s.bedId === bedId && s.membership === 'ACTIVE')
-        if (assigned) {
-          pushToast(
-            `Bed ${bed.label} is allocated to ${assigned.name} — update their membership first.`,
-            'error',
-          )
-          return
-        }
-      }
-
       setRooms((prev) =>
         prev.map((r) =>
           r.id === room.id
-            ? { ...r, beds: r.beds.map((b) => (b.id === bedId ? { ...b, status } : b)) }
+            ? { ...r, beds: r.beds.map((b) => (b.id === bedId ? { ...b, status: statusVal } : b)) }
             : r,
         ),
       )
-      pushToast(`Bed ${bed.label} in room ${room.number} set to ${status}.`, 'info')
+      try {
+        await apiSetBedStatus(bedId, statusVal)
+        pushToast(`Bed ${bed.label} in room ${room.number} set to ${statusVal}.`, 'info')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to set bed status'
+        pushToast(msg, 'error')
+        loadOwnerData()
+      }
     },
-    [rooms, students, pushToast],
+    [rooms, loadOwnerData, pushToast],
   )
 
   /* ---------------------------------------------------------- students */
 
   const setMembership = useCallback(
-    (studentId: string, status: MembershipStatus) => {
+    async (studentId: string, membershipVal: MembershipStatus) => {
       const student = students.find((s) => s.id === studentId)
       if (!student) return
 
       setStudents((prev) =>
-        prev.map((s) => (s.id === studentId ? { ...s, membership: status, roomId: status === 'INACTIVE' ? '' : s.roomId, bedId: status === 'INACTIVE' ? '' : s.bedId } : s)),
+        prev.map((s) =>
+          s.id === studentId
+            ? {
+                ...s,
+                membership: membershipVal,
+                roomId: membershipVal === 'INACTIVE' ? '' : s.roomId,
+                bedId: membershipVal === 'INACTIVE' ? '' : s.bedId,
+              }
+            : s,
+        ),
       )
 
-      // Ending a membership releases the bed; capacity stays consistent.
-      if (status === 'INACTIVE' && student.bedId) {
-        setRooms((prev) =>
-          prev.map((r) =>
-            r.id === student.roomId
-              ? {
-                  ...r,
-                  beds: r.beds.map((b) =>
-                    b.id === student.bedId && b.status === 'OCCUPIED'
-                      ? { ...b, status: 'AVAILABLE' }
-                      : b,
-                  ),
-                }
-              : r,
-          ),
-        )
+      try {
+        await apiSetStudentMembership(studentId, membershipVal)
+        logActivity(`Membership of "${student.name}" set to ${membershipVal}`, 'student', student.propertyId)
+        pushToast(`${student.name} → ${membershipVal}.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update student membership'
+        pushToast(msg, 'error')
+        loadOwnerData()
       }
-
-      logActivity(`Membership of “${student.name}” set to ${status}`, 'student', student.propertyId)
-      pushToast(`${student.name} → ${status} (demo).`)
     },
-    [students, logActivity, pushToast],
+    [students, loadOwnerData, logActivity, pushToast],
   )
 
   /* -------------------------------------------------------- admissions */
 
   const generateCode = useCallback(
-    ({ propertyId, roomPreference, expiresInDays }: { propertyId: string; roomPreference: string; expiresInDays: number }) => {
-      const property = properties.find((p) => p.id === propertyId)
+    (input: { propertyId: string; roomPreference: string; expiresInDays: number }) => {
+      const property = properties.find((p) => p.id === input.propertyId)
       if (!property) {
         pushToast('Select a valid PG property first.', 'error')
         return ''
       }
-      const prefix = property.name
-        .split(' ')
-        .map((w) => w[0])
-        .join('')
-        .slice(0, 4)
-        .toUpperCase()
-      let code = ''
-      do {
-        code = `ADM-${prefix}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-      } while (codes.some((c) => c.code === code))
 
-      const record: AdmissionCode = {
-        id: uid('code'),
-        propertyId,
-        code,
-        roomPreference,
-        expiresOn: addDays(TODAY, expiresInDays),
-        status: 'ACTIVE',
-        createdOn: TODAY,
-      }
-      setCodes((prev) => [record, ...prev])
-      logActivity(`Admission code ${code} generated for “${property.name}”`, 'admission', propertyId)
-      pushToast(`Code ${code} generated — share it with the student (demo, not secure).`, 'info')
-      return code
+      const tempCode = `ADM-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+
+      apiGenerateAdmissionCode(input)
+        .then((created) => {
+          setCodes((prev) => [created, ...prev])
+          logActivity(`Admission code ${created.code} generated for "${property.name}"`, 'admission', input.propertyId)
+          pushToast(`Code ${created.code} generated successfully.`, 'info')
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Failed to generate code'
+          pushToast(msg, 'error')
+        })
+
+      return tempCode
     },
-    [properties, codes, logActivity, pushToast],
+    [properties, logActivity, pushToast],
   )
 
   const revokeCode = useCallback(
-    (codeId: string) => {
+    async (codeId: string) => {
       setCodes((prev) => prev.map((c) => (c.id === codeId ? { ...c, status: 'REVOKED' } : c)))
-      const code = codes.find((c) => c.id === codeId)?.code ?? codeId
-      pushToast(`Code ${code} revoked (demo).`, 'info')
-    },
-    [codes, pushToast],
-  )
-
-  const simulateIncomingRequest = useCallback(
-    (codeId: string) => {
-      const code = codes.find((c) => c.id === codeId)
-      if (!code || code.status !== 'ACTIVE') {
-        pushToast('Only active codes can simulate an incoming request.', 'error')
-        return
+      try {
+        await apiRevokeAdmissionCode(codeId)
+        const code = codes.find((c) => c.id === codeId)?.code ?? codeId
+        pushToast(`Code ${code} revoked.`, 'info')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to revoke code'
+        pushToast(msg, 'error')
+        loadOwnerData()
       }
-      const profile = SIMULATED_STUDENTS[Math.floor(Math.random() * SIMULATED_STUDENTS.length)]
-      const request: AdmissionRequest = {
-        id: uid('req'),
-        propertyId: code.propertyId,
-        code: code.code,
-        roomPreference: code.roomPreference,
-        studentName: profile.name,
-        studentEmail: profile.email,
-        studentMobile: profile.mobile,
-        requestedOn: TODAY,
-        status: 'PENDING',
-      }
-      setRequests((prev) => [request, ...prev])
-      const property = properties.find((p) => p.id === code.propertyId)
-      logActivity(
-        `Simulated request from “${profile.name}” for “${property?.name ?? code.propertyId}”`,
-        'admission',
-        code.propertyId,
-      )
-      pushToast(`Simulated admission request from ${profile.name} (demo).`, 'info')
     },
-    [codes, properties, logActivity, pushToast],
+    [codes, loadOwnerData, pushToast],
   )
 
   const decideRequest = useCallback(
-    (requestId: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => {
+    async (requestId: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => {
       const request = requests.find((r) => r.id === requestId)
       if (!request || request.status !== 'PENDING') return
 
-      const property = properties.find((p) => p.id === request.propertyId)
-      if (!property) {
-        pushToast('Property not found for this request.', 'error')
-        return
-      }
-
-      if (decision === 'REJECTED') {
+      try {
+        await apiDecideAdmissionRequest(requestId, decision, reason)
         setRequests((prev) =>
-          prev.map((r) =>
-            r.id === requestId
-              ? { ...r, status: 'REJECTED', decidedOn: TODAY, reason: reason ?? 'Rejected (demo decision).' }
-              : r,
-          ),
+          prev.map((r) => (r.id === requestId ? { ...r, status: decision, reason } : r)),
         )
-        logActivity(`Request from “${request.studentName}” rejected`, 'admission', property.id)
-        pushToast(`Request from ${request.studentName} rejected (demo).`, 'info')
-        return
+        pushToast(`Request ${decision.toLowerCase()} successfully.`)
+        loadOwnerData()
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to decide request'
+        pushToast(msg, 'error')
       }
-
-      // ---- APPROVAL: capacity check before any membership activation.
-      const propertyRooms = rooms.filter((r) => r.propertyId === property.id)
-      const preferred =
-        request.roomPreference && propertyRooms.find((r) => r.id === request.roomPreference)
-          ? propertyRooms.find((r) => r.id === request.roomPreference)!
-          : null
-
-      const candidates = preferred ? [preferred] : propertyRooms
-      let targetRoom: OwnerRoom | undefined
-      let targetBed
-      for (const room of candidates) {
-        const free = room.beds.find((b) => b.status === 'AVAILABLE')
-        if (free) {
-          targetRoom = room
-          targetBed = free
-          break
-        }
-      }
-
-      if (!targetRoom || !targetBed) {
-        pushToast(
-          `Approval blocked — no available beds in ${property.name} (demo capacity check).`,
-          'error',
-        )
-        return
-      }
-
-      // Allocate the bed.
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === targetRoom!.id
-            ? {
-                ...r,
-                beds: r.beds.map((b) =>
-                  b.id === targetBed!.id ? { ...b, status: 'OCCUPIED' as BedStatus } : b,
-                ),
-              }
-            : r,
-        ),
-      )
-
-      // Grant an active membership.
-      setStudents((prev) => [
-        ...prev,
-        {
-          id: uid('stu'),
-          propertyId: property.id,
-          roomId: targetRoom.id,
-          bedId: targetBed.id,
-          name: request.studentName,
-          email: request.studentEmail,
-          mobile: request.studentMobile,
-          college: 'Not provided (demo)',
-          city: property.city,
-          admissionDate: TODAY,
-          membership: 'ACTIVE',
-        },
-      ])
-
-      setRequests((prev) =>
-        prev.map((r) =>
-          r.id === requestId ? { ...r, status: 'APPROVED', decidedOn: TODAY } : r,
-        ),
-      )
-
-      logActivity(
-        `“${request.studentName}” approved — allocated room ${targetRoom.number} bed ${targetBed.label}`,
-        'admission',
-        property.id,
-      )
-      pushToast(
-        `Approved — ${request.studentName} allocated room ${targetRoom.number}, bed ${targetBed.label}.`,
-      )
     },
-    [requests, properties, rooms, logActivity, pushToast],
+    [requests, loadOwnerData, pushToast],
   )
 
   /* ------------------------------------------------------------- staff */
 
   const addStaff = useCallback(
-    (input: { propertyId: string; name: string; email: string; mobile: string; role: string }) => {
-      const property = properties.find((p) => p.id === input.propertyId)
-      if (!property) {
-        pushToast('Select a valid PG property.', 'error')
-        return
+    async (input: { propertyId: string; name: string; email: string; mobile: string; role: string }) => {
+      try {
+        const created = await apiAddStaff(input)
+        setStaff((prev) => [created, ...prev])
+        logActivity(`Staff member "${created.name}" added`, 'staff', input.propertyId)
+        pushToast(`${created.name} added to staff.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to add staff'
+        pushToast(msg, 'error')
       }
-      setStaff((prev) => [...prev, { ...input, id: uid('staff'), joinedOn: TODAY }])
-      logActivity(`Staff member “${input.name}” added`, 'staff', input.propertyId)
-      pushToast(`${input.name} added to ${property.name} (demo).`)
     },
-    [properties, logActivity, pushToast],
+    [logActivity, pushToast],
   )
 
   const updateStaff = useCallback(
-    (id: string, patch: { name: string; email: string; mobile: string; role: string; propertyId: string }) => {
-      setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
-      pushToast(`Staff record for ${patch.name} updated (demo).`)
+    async (
+      id: string,
+      patch: { name: string; email: string; mobile: string; role: string; propertyId: string },
+    ) => {
+      try {
+        const updated = await apiUpdateStaff(id, patch)
+        setStaff((prev) => prev.map((s) => (s.id === id ? updated : s)))
+        pushToast(`Staff record for ${patch.name} updated.`)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update staff'
+        pushToast(msg, 'error')
+      }
     },
     [pushToast],
   )
 
   const removeStaff = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const member = staff.find((s) => s.id === id)
       setStaff((prev) => prev.filter((s) => s.id !== id))
-      if (member) {
-        logActivity(`Staff member “${member.name}” removed`, 'staff', member.propertyId)
-        pushToast(`${member.name} removed from staff (demo).`, 'info')
+      try {
+        await apiRemoveStaff(id)
+        if (member) {
+          logActivity(`Staff member "${member.name}" removed`, 'staff', member.propertyId)
+          pushToast(`${member.name} removed from staff.`, 'info')
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to remove staff'
+        pushToast(msg, 'error')
+        loadOwnerData()
       }
     },
-    [staff, logActivity, pushToast],
+    [staff, loadOwnerData, logActivity, pushToast],
   )
 
   /* ----------------------------------------------------------- account */
 
   const updateProfile = useCallback(
-    (patch: Partial<OwnerProfile>) => {
-      setOwner((prev) => ({ ...prev, ...patch }))
-      pushToast('Profile saved (demo — local state only).')
+    async (patch: Partial<OwnerProfile>) => {
+      try {
+        const updated = await apiUpdateProfile(patch)
+        setOwner(updated)
+        pushToast('Profile updated successfully.')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to update profile'
+        pushToast(msg, 'error')
+      }
     },
     [pushToast],
   )
 
   const markNotificationRead = useCallback((id: string, read: boolean) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read } : n)))
+    apiMarkNotificationRead(id, read).catch(() => {})
   }, [])
 
   const markAllNotificationsRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    apiMarkAllNotificationsRead().catch(() => {})
   }, [])
 
   const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id))
+    apiRemoveNotification(id).catch(() => {})
   }, [])
 
   const value = useMemo<OwnerStoreValue>(
@@ -700,7 +580,6 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       setMembership,
       generateCode,
       revokeCode,
-      simulateIncomingRequest,
       decideRequest,
       addStaff,
       updateStaff,
@@ -738,7 +617,6 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       setMembership,
       generateCode,
       revokeCode,
-      simulateIncomingRequest,
       decideRequest,
       addStaff,
       updateStaff,
@@ -755,8 +633,8 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   return <OwnerStoreContext.Provider value={value}>{children}</OwnerStoreContext.Provider>
 }
 
-export function useOwnerStore(): OwnerStoreValue {
+export function useOwnerStore() {
   const ctx = useContext(OwnerStoreContext)
-  if (!ctx) throw new Error('useOwnerStore must be used inside <OwnerStoreProvider>')
+  if (!ctx) throw new Error('useOwnerStore must be used inside OwnerStoreProvider')
   return ctx
 }

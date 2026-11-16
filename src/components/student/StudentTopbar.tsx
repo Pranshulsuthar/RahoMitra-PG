@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useStudentStore } from '../../context/StudentStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
-import { DEMO_STUDENT_ID } from '../../data/communicationData'
+import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../utils/cn'
 import { ConfirmDialog } from '../admin/ConfirmDialog'
 import type { StudentNotice } from '../../types/student'
@@ -41,6 +41,8 @@ interface StudentTopbarProps {
 export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: StudentTopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const studentId = user?.id || ''
   const { profile, notices, unreadCount, markNoticeRead, markAllNoticesRead, removeNotice, pushToast } =
     useStudentStore()
   const {
@@ -74,9 +76,8 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
     setProfileOpen(false)
   }
 
-  /* Section 07 — unified bell: classic notices + Section 07 notifications
-     (messages, complaints, responses, announcements). */
-  const commNotes = roleNotifications('STUDENT', DEMO_STUDENT_ID)
+  /* Unified bell: notices + communication notifications */
+  const commNotes = roleNotifications('STUDENT', studentId)
 
   const bellRows = useMemo(() => {
     type Row = {
@@ -123,22 +124,21 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
   const dismissRow = (row: { id: string; source: string }) => {
     if (row.source === 'COMM') clearNotification(row.id)
     else removeNotice(row.id)
-    pushToast('Notification cleared (demo).', 'info')
+    pushToast('Notification cleared.', 'info')
   }
 
   const markAllBell = () => {
     markAllNoticesRead()
-    markAllCommRead('STUDENT', DEMO_STUDENT_ID)
+    markAllCommRead('STUDENT', studentId)
     announcements
       .filter(
         (a) =>
           a.published &&
-          a.propertyId === 'pg-001' &&
-          (a.audience === 'ALL' || a.audienceStudentIds.includes(DEMO_STUDENT_ID)) &&
-          !a.readBy.includes(DEMO_STUDENT_ID),
+          (a.audience === 'ALL' || (studentId && a.audienceStudentIds.includes(studentId))) &&
+          (!studentId || !a.readBy.includes(studentId)),
       )
-      .forEach((a) => markAnnouncementRead(a.id, DEMO_STUDENT_ID))
-    pushToast('All demo notifications marked as read.', 'info')
+      .forEach((a) => markAnnouncementRead(a.id, studentId))
+    pushToast('All notifications marked as read.', 'info')
   }
 
   return (
@@ -364,12 +364,13 @@ export function StudentTopbar({ collapsed, onOpenMobile, onToggleCollapse }: Stu
       <ConfirmDialog
         open={logoutOpen}
         title="Logout of Student Portal?"
-        message="This ends the demo student session and returns you to the Student Login screen. No real session exists — this is a frontend-only demo."
+        message="Are you sure you want to log out of the student portal?"
         confirmLabel="Logout"
         danger
-        onConfirm={() => {
+        onConfirm={async () => {
           setLogoutOpen(false)
-          navigate('/login/student')
+          await logout()
+          navigate('/login/student', { replace: true })
         }}
         onCancel={() => setLogoutOpen(false)}
       />

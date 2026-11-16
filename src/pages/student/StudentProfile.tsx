@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { GraduationCap, Mail, MapPin, Phone, Save, ShieldAlert, UserRound, X } from 'lucide-react'
+import { GraduationCap, Mail, MapPin, Phone, Save, UserRound, X } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useStudentStore } from '../../context/StudentStore'
-import { STUDENT_ADMISSION, STUDENT_PROPERTY, STUDENT_ROOM } from '../../data/studentData'
+import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { FormInput } from '../../components/owner/FormInput'
 import { Button } from '../../components/common/Button'
 
-/** /student/profile — local profile editing with save/cancel + success toast. */
+/** /student/profile — profile editing with save/cancel + toast. */
 export function StudentProfile() {
   useDocumentTitle('My Profile')
 
@@ -20,12 +19,19 @@ export function StudentProfile() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ ...profile })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [liveAccommodation, setLiveAccommodation] = useState<StudentAccommodation | null>(null)
 
   useEffect(() => {
     setForm({ ...profile })
   }, [profile])
 
-  const initials = profile.name
+  useEffect(() => {
+    fetchStudentAccommodation()
+      .then((acc) => setLiveAccommodation(acc))
+      .catch(() => setLiveAccommodation(null))
+  }, [])
+
+  const initials = (profile.name || 'Student')
     .trim()
     .split(' ')
     .map((w) => w[0])
@@ -58,7 +64,7 @@ export function StudentProfile() {
     setForm({ ...profile })
     setErrors({})
     setEditing(false)
-    pushToast('Changes discarded (demo).', 'info')
+    pushToast('Changes discarded.', 'info')
   }
 
   const save = (event?: FormEvent) => {
@@ -66,13 +72,14 @@ export function StudentProfile() {
     if (!validate()) return
     updateProfile(form)
     setEditing(false)
+    pushToast('Profile updated successfully.', 'success')
   }
 
   return (
     <>
       <AdminPageHeader
         title="My Profile"
-        description="Your demo account details — edit locally and save. Changes stay in React state for this session."
+        description="Your student account details and contact information."
         actions={
           editing ? (
             <>
@@ -94,31 +101,29 @@ export function StudentProfile() {
         }
       />
 
-      <DemoBanner message="this is a fictional demo student profile — no real identity, contact detail or account exists behind it. Edits reset on reload." />
-
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard
           label="Membership"
-          value={STUDENT_ADMISSION.membership}
+          value={liveAccommodation ? 'ACTIVE' : 'NOT ENROLLED'}
           icon={GraduationCap}
           tone="forest"
-          hint={`Since ${STUDENT_ADMISSION.admissionDate}`}
+          hint={liveAccommodation ? `Since ${liveAccommodation.admissionDate}` : 'No active admission'}
         />
         <StatisticCard
           label="Current PG"
-          value="Shree Shyam"
+          value={liveAccommodation ? liveAccommodation.property.name : 'None'}
           icon={UserRound}
           tone="ink"
-          hint={STUDENT_PROPERTY.name}
+          hint={liveAccommodation ? `${liveAccommodation.property.locality}, ${liveAccommodation.property.city}` : 'Join a PG to get started'}
         />
         <StatisticCard
           label="Room · Bed"
-          value={`${STUDENT_ROOM.number} · ${STUDENT_ADMISSION.bedLabel}`}
+          value={liveAccommodation ? `${liveAccommodation.room.roomNumber} · Bed ${liveAccommodation.bed.bedNumber}` : 'Unassigned'}
           icon={UserRound}
           tone="gold"
-          hint="Allocation (demo)"
+          hint={liveAccommodation ? `Floor ${liveAccommodation.room.floor}` : 'Pending admission'}
         />
-        <StatisticCard label="Account" value="Demo" icon={ShieldAlert} tone="ink" />
+        <StatisticCard label="Account" value="Student" icon={UserRound} tone="ink" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
@@ -131,9 +136,9 @@ export function StudentProfile() {
             <h2 className="mt-4 text-xl text-ink">{profile.name}</h2>
             <p className="mt-1 text-[13px] text-ink-mute">{profile.email}</p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <StatusBadge status={STUDENT_ADMISSION.membership} />
-              <span className="rounded-full bg-gold-soft px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-gold-dark">
-                Demo student
+              <StatusBadge status={liveAccommodation ? 'ACTIVE' : 'INACTIVE'} />
+              <span className="rounded-full bg-forest-soft px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-forest">
+                Student
               </span>
             </div>
           </div>
@@ -145,7 +150,7 @@ export function StudentProfile() {
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
                   Mobile
                 </dt>
-                <dd className="truncate font-semibold text-ink">{profile.mobile} (demo)</dd>
+                <dd className="truncate font-semibold text-ink">{profile.mobile || 'Not provided'}</dd>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-line bg-ivory/40 px-4 py-3">
@@ -154,7 +159,7 @@ export function StudentProfile() {
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
                   College
                 </dt>
-                <dd className="truncate font-semibold text-ink">{profile.college}</dd>
+                <dd className="truncate font-semibold text-ink">{profile.college || 'Not provided'}</dd>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-line bg-ivory/40 px-4 py-3">
@@ -163,14 +168,13 @@ export function StudentProfile() {
                 <dt className="text-[10.5px] font-bold uppercase tracking-wider text-ink-mute">
                   City
                 </dt>
-                <dd className="truncate font-semibold text-ink">{profile.city}</dd>
+                <dd className="truncate font-semibold text-ink">{profile.city || 'Not provided'}</dd>
               </div>
             </div>
           </dl>
 
           <p className="mt-5 text-[11.5px] leading-relaxed text-ink-mute">
-            Profile image is rendered from your initials — image uploads are not part of this
-            frontend-only demo.
+            Avatar is generated automatically from your initials.
           </p>
         </aside>
 
@@ -178,11 +182,6 @@ export function StudentProfile() {
         <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg">{editing ? 'Edit profile' : 'Profile details'}</h2>
-            {!editing && (
-              <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-                View mode · demo
-              </span>
-            )}
           </div>
 
           <form onSubmit={save} noValidate>
@@ -206,7 +205,6 @@ export function StudentProfile() {
                 value={form.email}
                 onChange={(v) => setForm({ ...form, email: v })}
                 error={errors.email}
-                hint="Demo domain: @rahomitra.demo"
               />
               <FormInput
                 id="student-mobile"
@@ -216,7 +214,7 @@ export function StudentProfile() {
                 value={form.mobile}
                 onChange={(v) => setForm({ ...form, mobile: v })}
                 error={errors.mobile}
-                hint="Fictional demo number."
+                hint="10-digit mobile number."
               />
               <FormInput
                 id="student-college"
@@ -244,16 +242,7 @@ export function StudentProfile() {
                 value={form.emergencyContact}
                 onChange={(v) => setForm({ ...form, emergencyContact: v })}
                 error={errors.emergencyContact}
-                hint="Fictional demo number (name relation)."
-                className="sm:col-span-2"
-              />
-              <FormInput
-                id="student-profile-image"
-                label="Profile Image"
-                disabled
-                value="Initials avatar (uploads not in demo)"
-                onChange={() => undefined}
-                hint="No file upload exists in this frontend-only build."
+                hint="Name and relationship of contact person."
                 className="sm:col-span-2"
               />
             </div>
@@ -274,8 +263,7 @@ export function StudentProfile() {
 
           <p className="mt-4 flex items-start gap-2 text-[11.5px] leading-relaxed text-ink-mute">
             <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold-dark" aria-hidden />
-            Changes are stored in local React state only and reset on reload — no password or
-            security settings exist in this demo.
+            Contact information is shared with your PG management for emergency contact and official notifications.
           </p>
         </section>
       </div>

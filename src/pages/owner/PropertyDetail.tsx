@@ -15,7 +15,6 @@ import {
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { aggregateRooms, useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { ROOM_TYPE_LABELS, roomOccupancy } from '../../types/owner'
@@ -46,7 +45,7 @@ export function PropertyDetail() {
     return (
       <EmptyState
         title="Property not found"
-        description="This demo property does not exist — it may have been removed in this session. Reload to restore the original demo dataset."
+        description="This property does not exist or has been removed."
         icon={<Building2 className="h-6 w-6" aria-hidden />}
         action={
           <Link
@@ -75,7 +74,7 @@ export function PropertyDetail() {
 
       <AdminPageHeader
         title={property.name}
-        description={`${property.locality}, ${property.city} · demo listing owned by this account.`}
+        description={`${property.locality}, ${property.city}`}
         actions={
           <Link
             to={`/owner/properties/${property.id}/edit`}
@@ -87,14 +86,12 @@ export function PropertyDetail() {
         }
       />
 
-      <DemoBanner message="this property, its rooms, students and staff are fictional demo records held in local React state." />
-
       {/* Cover + meta */}
       <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
         <div className="relative h-56 sm:h-72">
           <img
             src={property.coverImage}
-            alt={`${property.name} (demo photograph)`}
+            alt={property.name}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/25 to-transparent" aria-hidden />
@@ -103,9 +100,6 @@ export function PropertyDetail() {
               <div className="mb-2 flex flex-wrap gap-2">
                 <span className="rounded-full border border-white/30 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-ink">
                   {property.type.replace('_', '-').toLowerCase()}
-                </span>
-                <span className="rounded-full border border-white/30 bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-ink">
-                  Demo
                 </span>
               </div>
               <h1 className="text-2xl text-white drop-shadow sm:text-3xl">{property.name}</h1>
@@ -127,11 +121,11 @@ export function PropertyDetail() {
             <div className="mt-4 flex flex-wrap gap-4 text-[13px] text-ink-soft">
               <span className="inline-flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gold-dark" aria-hidden />
-                {property.contactPhone} (demo)
+                {property.contactPhone || 'Not provided'}
               </span>
               <span className="inline-flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gold-dark" aria-hidden />
-                {property.contactEmail}
+                {property.contactEmail || 'Not provided'}
               </span>
               <span className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-gold-dark" aria-hidden />
@@ -186,13 +180,12 @@ export function PropertyDetail() {
                 <img
                   key={src}
                   src={src}
-                  alt={`${property.name} gallery (demo)`}
+                  alt={`${property.name} gallery`}
                   loading="lazy"
                   className="h-24 w-full rounded-xl object-cover"
                 />
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-ink-mute">Sample photographs — demo only.</p>
           </div>
         </div>
       </div>
@@ -215,7 +208,7 @@ export function PropertyDetail() {
         </div>
         {propertyRooms.length === 0 ? (
           <p className="py-8 text-center text-sm text-ink-mute">
-            No demo rooms yet — add rooms from Room Management.
+            No rooms added yet — add rooms from Room Management.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -262,7 +255,7 @@ export function PropertyDetail() {
         <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
           <h2 className="mb-4 text-base sm:text-lg">Active students ({propertyStudents.length})</h2>
           {propertyStudents.length === 0 ? (
-            <p className="py-6 text-center text-sm text-ink-mute">No active demo students.</p>
+            <p className="py-6 text-center text-sm text-ink-mute">No active students.</p>
           ) : (
             <ul className="space-y-2.5">
               {propertyStudents.map((student) => {
@@ -291,7 +284,7 @@ export function PropertyDetail() {
         <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
           <h2 className="mb-4 text-base sm:text-lg">Staff ({propertyStaff.length})</h2>
           {propertyStaff.length === 0 ? (
-            <p className="py-6 text-center text-sm text-ink-mute">No demo staff assigned.</p>
+            <p className="py-6 text-center text-sm text-ink-mute">No staff assigned.</p>
           ) : (
             <ul className="space-y-2.5">
               {propertyStaff.map((member) => (
@@ -302,7 +295,7 @@ export function PropertyDetail() {
                   <div className="min-w-0">
                     <p className="truncate text-[13.5px] font-bold text-ink">{member.name}</p>
                     <p className="truncate text-[11.5px] text-ink-mute">
-                      {member.role.replace('_', ' ').toLowerCase()} · {member.mobile} (demo)
+                      {member.role.replace('_', ' ').toLowerCase()} · {member.mobile}
                     </p>
                   </div>
                   <Link
@@ -322,7 +315,7 @@ export function PropertyDetail() {
       <section className="mt-6 rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
         <h2 className="text-base sm:text-lg">Listing visibility</h2>
         <p className="mt-1 text-[13px] text-ink-mute">
-          Change the listing status in local demo state — nothing is published anywhere.
+          Change the listing status. Approved active properties appear on public listings.
         </p>
         <div className="mt-4 flex flex-wrap gap-2.5">
           {(['ACTIVE', 'PENDING', 'DRAFT', 'PAUSED'] as const).map((status) => (

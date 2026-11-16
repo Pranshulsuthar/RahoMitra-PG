@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ClipboardCheck, Inbox, ShieldAlert } from 'lucide-react'
+import { ClipboardCheck, Inbox } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
@@ -76,20 +75,8 @@ export function Admissions() {
     <>
       <AdminPageHeader
         title="Admission Management"
-        description="Generate demo admission codes, review simulated requests and approve or reject them yourself."
+        description="Generate secure admission codes, review student admission requests and allocate rooms & beds upon approval."
       />
-
-      <DemoBanner message="admission codes are locally simulated — NOT secure, server-validated, single-use or actually distributed. Membership activates only after your approval." />
-
-      {/* Honesty callout */}
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-dashed border-danger/50 bg-danger-soft/50 px-4 py-3.5 text-[12.5px] leading-relaxed text-danger">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-        <p>
-          <strong className="font-bold uppercase tracking-wide">Frontend simulation only</strong> —
-          entering a code never auto-activates a membership. Owner approval is always required,
-          and approval first checks that the property has a free bed (capacity guard).
-        </p>
-      </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatisticCard label="Codes Generated" value={scopedCodes.length} icon={ClipboardCheck} tone="ink" />
@@ -113,7 +100,7 @@ export function Admissions() {
               options={STATUS_OPTIONS}
             />
             <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
-              {filtered.length} total · demo
+              {filtered.length} total
             </span>
           </div>
         </div>
@@ -121,7 +108,7 @@ export function Admissions() {
         {filtered.length === 0 ? (
           <EmptyState
             title="No admission requests"
-            description="No demo requests match this filter. Use “Simulate request” on an active code to create one and walk through the approval flow."
+            description="No admission requests match this filter. When students submit requests with your admission codes, they will appear here."
             icon={<Inbox className="h-6 w-6" aria-hidden />}
           />
         ) : (
@@ -145,7 +132,7 @@ export function Admissions() {
       <Modal
         open={viewing !== null}
         title="Admission request details"
-        subtitle="Frontend demo record — no data was received from any server."
+        subtitle="Review applicant information and room preference before deciding."
         onClose={() => setViewing(null)}
         footer={
           viewing && (
@@ -185,7 +172,7 @@ export function Admissions() {
               <div>
                 <p className="text-lg font-bold text-ink">{viewing.studentName}</p>
                 <p className="text-[12.5px] text-ink-mute">
-                  {viewing.studentEmail} · {viewing.studentMobile} (demo)
+                  {viewing.studentEmail} · {viewing.studentMobile}
                 </p>
               </div>
               <StatusBadge status={viewing.status} />
@@ -222,8 +209,7 @@ export function Admissions() {
 
             {viewing.status === 'PENDING' && (
               <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12.5px] leading-relaxed text-gold-dark">
-                Approval will check available capacity, allocate the first free bed (preferred room
-                first) and grant an ACTIVE membership in this demo session.
+                Approval will allocate the first available bed in the requested room (or property) and grant active resident status.
               </p>
             )}
           </div>
@@ -236,10 +222,8 @@ export function Admissions() {
         title="Approve admission request?"
         message={
           <>
-            <strong>{approving?.studentName}</strong> will be allocated the first free bed in{' '}
-            {approving ? nameOf(approving.propertyId) : ''} (preferred room first) and receive an
-            ACTIVE membership. This is a local demo action — approval is blocked automatically if
-            no bed is free.
+            <strong>{approving?.studentName}</strong> will be allocated an available bed in{' '}
+            {approving ? nameOf(approving.propertyId) : ''} and granted active resident status.
           </>
         }
         confirmLabel="Approve & allocate bed"
@@ -261,7 +245,7 @@ export function Admissions() {
         danger
         requireReason
         reasonLabel="Rejection reason"
-        reasonPlaceholder="e.g. Property full for this month (demo)"
+        reasonPlaceholder="e.g. Property full for this session"
         onConfirm={confirmReject}
         onCancel={() => setRejecting(null)}
       />

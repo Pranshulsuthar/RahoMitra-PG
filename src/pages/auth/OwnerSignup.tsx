@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Building2, Home, LogIn } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
-import { isEmail, isMobile, simulateLatency } from '../../utils/authDemo'
+import { isEmail, isMobile } from '../../utils/authValidation'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 import { AuthCard } from '../../components/auth/AuthCard'
 import { AuthHeader } from '../../components/auth/AuthHeader'
@@ -16,12 +16,13 @@ import { AuthLink, AuthSuccess, StatusPill } from '../../components/auth/AuthSuc
 import { FormTransition } from '../../components/auth/FormTransition'
 import { StepProgress } from '../../components/auth/StepProgress'
 import { EmailOtpStep } from '../../components/auth/EmailOtpStep'
+import { apiClient, ApiError } from '../../api/client'
 
 type Step = 'email' | 'otp' | 'owner' | 'pg' | 'security' | 'submitted'
 const STEP_LABELS = ['Email', 'Verify', 'Owner', 'PG', 'Security', 'Submitted']
 
 const OWNER_INITIAL = { fullName: '', mobile: '' }
-const PG_INITIAL = { name: '', type: '', city: '', address: '', count: '1' }
+const PG_INITIAL = { name: '', type: 'BOYS', city: '', address: '', count: '1' }
 const CRED_INITIAL = { password: '', confirm: '', terms: 'false' }
 
 type ErrorMap = Record<string, string>
@@ -39,6 +40,9 @@ export function OwnerSignup() {
   const [emailError, setEmailError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
 
+  // Step 2 — verified token
+  const [signupToken, setSignupToken] = useState<string | null>(null)
+
   // Step 3a — owner details
   const [owner, setOwner] = useState(OWNER_INITIAL)
 
@@ -48,6 +52,7 @@ export function OwnerSignup() {
   // Step 3c — account security
   const [cred, setCred] = useState(CRED_INITIAL)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const goTo = (next: Step, dir: 'forward' | 'backward' = 'forward') => {
     setDirection(dir)
@@ -66,9 +71,22 @@ export function OwnerSignup() {
     }
     setEmailError(null)
     setSending(true)
-    await simulateLatency(900)
-    setSending(false)
-    goTo('otp')
+
+    try {
+      await apiClient.post('/auth/signup/request-otp', {
+        email: email.trim().toLowerCase(),
+        role: 'OWNER',
+      })
+      goTo('otp')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setEmailError(err.message)
+      } else {
+        setEmailError('Failed to send verification code. Please try again.')
+      }
+    } finally {
+      setSending(false)
+    }
   }
 
   // ---------------------------------------------------------- step 3a
@@ -107,10 +125,39 @@ export function OwnerSignup() {
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
+    if (!signupToken) {
+      goTo('email', 'backward')
+      return
+    }
+
     setSubmitting(true)
-    await simulateLatency(1100)
-    setSubmitting(false)
-    goTo('submitted')
+    setSubmitError(null)
+
+    try {
+      await apiClient.post('/auth/signup/owner', {
+        signupToken,
+        fullName: owner.fullName.trim(),
+        mobile: owner.mobile.trim(),
+        pg: {
+          name: pg.name.trim(),
+          type: pg.type,
+          city: pg.city.trim(),
+          address: pg.address.trim(),
+          count: Number(pg.count) || 1,
+        },
+        password: cred.password,
+      })
+
+      goTo('submitted')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.message)
+      } else {
+        setSubmitError('Failed to submit application. Please check your details and try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const onOwnerChange =
@@ -160,9 +207,6 @@ export function OwnerSignup() {
                   </AuthButton>
                 </div>
               </form>
-              <p className="mt-4 text-center text-[11px] text-ink-mute">
-                Frontend demo — no OTP email will actually be sent.
-              </p>
               <p className="mt-6 text-center text-sm text-ink-soft">
                 Already an approved owner? <AuthLink to="/login/owner">Login</AuthLink>
               </p>
@@ -174,8 +218,12 @@ export function OwnerSignup() {
             <FormTransition key="otp" direction={direction}>
               <EmailOtpStep
                 email={email}
+                role="owner"
                 onChangeEmail={() => goTo('email', 'backward')}
-                onVerified={() => goTo('owner')}
+                onVerified={(token) => {
+                  setSignupToken(token)
+                  goTo('owner')
+                }}
               />
             </FormTransition>
           )}
@@ -229,96 +277,87 @@ export function OwnerSignup() {
             </FormTransition>
           )}
 
-          {/* ------------------------------------------------ PG DETAILS */}
+          {/* ------------------------------------------------- PG DETAILS */}
           {step === 'pg' && (
             <FormTransition key="pg" direction={direction}>
               <AuthHeader
                 eyebrow="Owner signup · Step 4 of 6"
-                title="PG details"
-                subtitle="Tell students what and where your property is."
+                title="Your main PG property"
+                subtitle="You can add more properties, rooms and beds after registration."
               />
               <form onSubmit={submitPg} noValidate className="space-y-5">
                 <AuthInput
                   id="pgName"
                   label="PG / Business Name"
                   required
-                  placeholder="e.g. Shree Shyam Boys PG"
+                  placeholder="e.g. Shyam Boys PG"
                   value={pg.name}
                   error={errors.name || undefined}
                   onChange={onPgChange('name')}
                 />
 
-                <div>
-                  <label htmlFor="pgType" className="form-label">
-                    PG Type<span className="ml-1 text-danger" aria-hidden>*</span>
-                  </label>
-                  <select
-                    id="pgType"
-                    value={pg.type}
-                    onChange={onPgChange('type')}
-                    aria-invalid={errors.type ? 'true' : undefined}
-                    className="form-input"
-                  >
-                    <option value="">Select PG type</option>
-                    <option value="Boys">Boys PG</option>
-                    <option value="Girls">Girls PG</option>
-                    <option value="Co-living">Co-living</option>
-                  </select>
-                  {errors.type && (
-                    <span className="form-error fade-scale-in" role="alert">
-                      {errors.type}
-                    </span>
-                  )}
-                </div>
-
                 <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="pgType"
+                      className="mb-1.5 block text-sm font-semibold text-ink"
+                    >
+                      PG Category <span className="text-crimson">*</span>
+                    </label>
+                    <select
+                      id="pgType"
+                      value={pg.type}
+                      onChange={onPgChange('type')}
+                      className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink transition-all focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/10"
+                    >
+                      <option value="BOYS">Boys</option>
+                      <option value="GIRLS">Girls</option>
+                      <option value="CO_LIVING">Co-living</option>
+                    </select>
+                    {errors.type && <AuthError message={errors.type} className="mt-1.5" />}
+                  </div>
+
                   <AuthInput
                     id="pgCity"
                     label="City"
                     required
+                    autoComplete="address-level2"
                     placeholder="e.g. Jaipur"
                     value={pg.city}
                     error={errors.city || undefined}
                     onChange={onPgChange('city')}
                   />
-                  <AuthInput
-                    id="pgCount"
-                    label="Number of PG Properties"
-                    type="number"
-                    required
-                    inputMode="numeric"
-                    min={1}
-                    placeholder="e.g. 1"
-                    value={pg.count}
-                    error={errors.count || undefined}
-                    onChange={onPgChange('count')}
-                  />
                 </div>
 
                 <div>
-                  <label htmlFor="pgAddress" className="form-label">
-                    Complete Address<span className="ml-1 text-danger" aria-hidden>*</span>
+                  <label
+                    htmlFor="pgAddress"
+                    className="mb-1.5 block text-sm font-semibold text-ink"
+                  >
+                    Complete Address <span className="text-crimson">*</span>
                   </label>
                   <textarea
                     id="pgAddress"
                     rows={3}
-                    maxLength={300}
-                    placeholder="Full address with landmark and pin code"
+                    placeholder="House / building no., street, landmark, locality"
                     value={pg.address}
                     onChange={onPgChange('address')}
-                    aria-invalid={errors.address ? 'true' : undefined}
-                    className="form-input resize-y"
+                    className="w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink transition-all placeholder:text-ink-mute focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/10"
                   />
-                  {errors.address ? (
-                    <span className="form-error fade-scale-in" role="alert">
-                      {errors.address}
-                    </span>
-                  ) : (
-                    <span className="mt-1.5 block text-[11px] text-ink-mute">
-                      {pg.address.length}/300 characters
-                    </span>
-                  )}
+                  {errors.address && <AuthError message={errors.address} className="mt-1.5" />}
                 </div>
+
+                <AuthInput
+                  id="pgCount"
+                  label="Number of PG Properties You Manage"
+                  type="number"
+                  min={1}
+                  required
+                  value={pg.count}
+                  error={errors.count || undefined}
+                  onChange={onPgChange('count')}
+                  hint="How many properties you plan to manage on RahoMitra."
+                />
 
                 <div className="flex flex-col gap-3 pt-1 sm:flex-row-reverse">
                   <AuthButton type="submit">Continue to Security</AuthButton>
@@ -337,22 +376,22 @@ export function OwnerSignup() {
             </FormTransition>
           )}
 
-          {/* -------------------------------------------------- SECURITY */}
+          {/* --------------------------------------------------- SECURITY */}
           {step === 'security' && (
             <FormTransition key="security" direction={direction}>
               <AuthHeader
                 eyebrow="Owner signup · Step 5 of 6"
-                title="Account security"
-                subtitle="Create a password to secure your owner account."
+                title="Secure your account"
+                subtitle="Create a strong password for your owner dashboard."
               />
               <form onSubmit={submitSecurity} noValidate className="space-y-5">
                 <div>
                   <PasswordInput
                     id="ownerPassword"
-                    label="Password"
+                    label="Create Password"
                     required
                     autoComplete="new-password"
-                    placeholder="Create a password"
+                    placeholder="Enter at least 8 characters"
                     value={cred.password}
                     error={errors.password || undefined}
                     onChange={(event) => {
@@ -401,6 +440,8 @@ export function OwnerSignup() {
                 </label>
                 {errors.terms && <AuthError message={errors.terms} />}
 
+                {submitError && <AuthError message={submitError} />}
+
                 <div className="flex flex-col gap-3 pt-1 sm:flex-row-reverse">
                   <AuthButton type="submit" loading={submitting} busyLabel="Submitting…">
                     Submit Application
@@ -430,10 +471,6 @@ export function OwnerSignup() {
                   <>
                     Your PG owner application will be reviewed by the RahoMitra Super Admin. You
                     will be able to manage and publish your PG after approval.
-                    <span className="mt-3 block rounded-xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-2.5 text-[12px] font-normal text-gold-dark">
-                      <strong className="font-bold uppercase tracking-wide">Demo</strong> — no
-                      application was actually stored; this is a frontend simulation.
-                    </span>
                   </>
                 }
               >

@@ -4,7 +4,6 @@ import { ArrowLeft, Eye, Save } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FormInput, FormSelect, FormTextarea } from '../../components/owner/FormInput'
 import { Button } from '../../components/common/Button'
 import { Modal } from '../../components/admin/Modal'
@@ -54,7 +53,7 @@ export function PropertyEdit() {
     return (
       <EmptyState
         title="Property not found"
-        description="This demo property does not exist — reload to restore the original demo dataset."
+        description="This property does not exist or has been removed."
         action={
           <Link to="/owner/properties" className="rounded-full bg-forest px-5 py-2.5 text-sm font-bold text-ivory hover:bg-forest-light">
             Back to properties
@@ -82,7 +81,7 @@ export function PropertyEdit() {
     void _ownerId
     void _listedOn
     updateProperty(property.id, patch)
-    pushToast('Listing updated — Explore preview refreshed (demo).')
+    pushToast('Listing updated successfully.')
   }
 
   const set = <K extends keyof OwnerProperty>(key: K, value: OwnerProperty[K]) =>
@@ -122,8 +121,6 @@ export function PropertyEdit() {
           </>
         }
       />
-
-      <DemoBanner message="edits are written to local React state only — no backend, storage or real listing is involved." />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         {/* ------------------------------------------------------ edit form */}
@@ -165,7 +162,6 @@ export function PropertyEdit() {
                   { value: 'DRAFT', label: 'Draft (hidden)' },
                   { value: 'PAUSED', label: 'Paused (hidden)' },
                 ]}
-                hint="Controls how the listing appears in this demo."
               />
               <FormInput
                 id="edit-deposit"
@@ -219,14 +215,14 @@ export function PropertyEdit() {
               />
               <FormInput
                 id="edit-phone"
-                label="Contact Phone (demo)"
+                label="Contact Phone"
                 value={form.contactPhone}
                 onChange={(v) => set('contactPhone', v)}
-                hint="Fictional placeholder — never a real number."
+                hint="Primary contact number."
               />
               <FormInput
                 id="edit-email"
-                label="Contact Email (demo)"
+                label="Contact Email"
                 type="email"
                 value={form.contactEmail}
                 onChange={(v) => set('contactEmail', v)}
@@ -302,7 +298,7 @@ export function PropertyEdit() {
           <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
             <h2 className="mb-1 text-base sm:text-lg">Logo & images</h2>
             <p className="mb-4 text-[12.5px] text-ink-mute">
-              Pick from the sample photo pool — frontend demo only, no real upload happens.
+              Select photos from your available gallery.
             </p>
             <p className="form-label">Cover image</p>
             <div className="mt-2 grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -318,7 +314,7 @@ export function PropertyEdit() {
                       : 'overflow-hidden rounded-xl ring-1 ring-line transition-shadow hover:ring-gold'
                   }
                 >
-                  <img src={src} alt="Cover option (demo)" className="h-16 w-full object-cover" />
+                  <img src={src} alt="Cover option" className="h-16 w-full object-cover" />
                 </button>
               ))}
             </div>
@@ -343,7 +339,7 @@ export function PropertyEdit() {
                         : 'relative overflow-hidden rounded-xl ring-1 ring-line transition-shadow hover:ring-gold'
                     }
                   >
-                    <img src={src} alt="Gallery option (demo)" className="h-16 w-full object-cover" />
+                    <img src={src} alt="Gallery option" className="h-16 w-full object-cover" />
                     <span
                       className={
                         active
@@ -392,9 +388,6 @@ export function PropertyEdit() {
                     <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-ink">
                       {PG_TYPE_LABELS[form.type]}
                     </span>
-                    <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-ink">
-                      Demo
-                    </span>
                   </div>
                   <p className="truncate text-[15px] font-bold text-white drop-shadow">
                     {form.name || 'Untitled PG'}
@@ -432,15 +425,14 @@ export function PropertyEdit() {
             </div>
 
             <p className="mt-3 text-[11px] leading-relaxed text-ink-mute">
-              This is how the card could appear on the public Explore PG page — preview only,
-              nothing is published.
+              This is a preview of how the card appears on the public Explore PG page.
             </p>
           </div>
         </aside>
       </div>
 
       {/* Full preview modal */}
-      <Modal open={previewOpen} title="Explore page preview" subtitle="Simulated public appearance — demo only." onClose={() => setPreviewOpen(false)} size="lg">
+      <Modal open={previewOpen} title="Explore page preview" subtitle="Public listing appearance preview." onClose={() => setPreviewOpen(false)} size="lg">
         <div className="overflow-hidden rounded-2xl border border-line">
           <div className="relative h-56">
             <img src={form.coverImage} alt="Cover preview" className="h-full w-full object-cover" />

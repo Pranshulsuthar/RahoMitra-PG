@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { aggregateRooms, useOwnerStore } from '../../context/OwnerStore'
 import type { PropertyInput } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { SearchInput, FilterSelect } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { PropertyCard } from '../../components/owner/PropertyCard'
@@ -42,9 +41,9 @@ const EMPTY_FORM: PropertyInput = {
   city: 'Jaipur',
   address: '',
   locality: '',
-  contactPhone: '98765 43099',
-  contactEmail: 'demo@rahomitra.demo',
-  securityDeposit: 10000,
+  contactPhone: '',
+  contactEmail: '',
+  securityDeposit: 5000,
   facilities: [],
   food: 'INCLUDED',
   rules: [],
@@ -166,7 +165,7 @@ export function Properties() {
     <>
       <AdminPageHeader
         title="My PG Properties"
-        description="View, create and manage every PG listing owned by this demo account."
+        description="View, create and manage every PG listing in your account."
         actions={
           <button
             type="button"
@@ -178,8 +177,6 @@ export function Properties() {
           </button>
         }
       />
-
-      <DemoBanner message="these are fictional sample PGs owned by the demo owner — listings, stats and statuses are local demo state only." />
 
       {/* Toolbar */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-3xl border border-line bg-white p-4 shadow-card">
@@ -200,7 +197,7 @@ export function Properties() {
       {filtered.length === 0 ? (
         <EmptyState
           title="No properties found"
-          description="No demo PGs match the current search or filters. Clear the filters or add a new PG."
+          description="No PGs match the current search or filters. Clear the filters or add a new PG."
           icon={<Building2 className="h-6 w-6" aria-hidden />}
           action={
             <button
@@ -248,7 +245,7 @@ export function Properties() {
       <Modal
         open={addOpen}
         title="Add New PG"
-        subtitle="Frontend demo — this form only writes to local React state; nothing is uploaded or saved."
+        subtitle="Add a new PG property to your management portfolio."
         onClose={() => setAddOpen(false)}
         size="xl"
         footer={
@@ -257,7 +254,7 @@ export function Properties() {
               Cancel
             </Button>
             <Button variant="primary" onClick={submit}>
-              Create PG (demo)
+              Create PG
             </Button>
           </>
         }
@@ -296,7 +293,7 @@ export function Properties() {
             maxLength={500}
             value={form.description}
             onChange={(v) => setForm({ ...form, description: v })}
-            placeholder="Describe the property (demo text only)…"
+            placeholder="Describe the property amenities, rules and atmosphere…"
             error={errors.description}
             className="sm:col-span-2"
           />
@@ -329,20 +326,19 @@ export function Properties() {
           />
           <FormInput
             id="pg-phone"
-            label="Contact Phone (demo)"
+            label="Contact Phone"
             value={form.contactPhone}
             onChange={(v) => setForm({ ...form, contactPhone: v })}
-            hint="Fictional placeholder only — never a real number."
+            hint="Primary property contact number."
           />
           <FormInput
             id="pg-email"
-            label="Contact Email (demo)"
+            label="Contact Email"
             required
             type="email"
             value={form.contactEmail}
             onChange={(v) => setForm({ ...form, contactEmail: v })}
             error={errors.contactEmail}
-            hint="Use the @rahomitra.demo domain."
           />
           <FormInput
             id="pg-deposit"
@@ -419,9 +415,9 @@ export function Properties() {
             </div>
           </fieldset>
 
-          {/* Cover image (pick from demo pool — no real upload) */}
+          {/* Cover image */}
           <div className="sm:col-span-2">
-            <p className="form-label">Cover Image (demo selection — no real upload)</p>
+            <p className="form-label">Cover Image</p>
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {IMAGE_POOL.map((src) => (
                 <button
@@ -435,13 +431,10 @@ export function Properties() {
                       : 'overflow-hidden rounded-2xl ring-1 ring-line transition-shadow hover:ring-gold'
                   }
                 >
-                  <img src={src} alt="Demo cover option" className="h-20 w-full object-cover" />
+                  <img src={src} alt="Cover option" className="h-20 w-full object-cover" />
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] text-ink-mute">
-              Gallery images are pre-filled with sample photos for this demo.
-            </p>
           </div>
         </div>
       </Modal>

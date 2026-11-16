@@ -1,54 +1,86 @@
 import { useState } from 'react'
-import { ArrowLeft, CheckCircle2, Mail, RefreshCw, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Mail, RefreshCw } from 'lucide-react'
 import { OTPInput } from './OTPInput'
 import { AuthHeader } from './AuthHeader'
 import { AuthButton } from './AuthButton'
 import { AuthError } from './AuthError'
 import { useCountdown } from '../../hooks/useCountdown'
-import { DEMO_OTP, OTP_RESEND_SECONDS, simulateLatency } from '../../utils/authDemo'
+import { OTP_RESEND_SECONDS } from '../../utils/authValidation'
+import { apiClient, ApiError } from '../../api/client'
 
 interface EmailOtpStepProps {
   email: string
+  role?: 'student' | 'owner'
   onChangeEmail: () => void
-  onVerified: () => void
+  onVerified: (signupToken: string) => void
 }
 
-/**
- * Reusable simulated OTP verification step (student + owner signup).
- * Nothing is sent anywhere: the demo code is 123456.
- */
-export function EmailOtpStep({ email, onChangeEmail, onVerified }: EmailOtpStepProps) {
+export function EmailOtpStep({ email, role = 'student', onChangeEmail, onVerified }: EmailOtpStepProps) {
   const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
+  const [resending, setResending] = useState(false)
   const [verified, setVerified] = useState(false)
   const { remaining, isRunning, start } = useCountdown(OTP_RESEND_SECONDS)
 
   const handleVerify = async () => {
     setError(null)
+    setNotice(null)
+
     if (otp.length !== 6) {
-      setError('Enter all six digits of the OTP.')
+      setError('Enter all six digits of the verification code.')
       return
     }
-    setVerifying(true)
-    await simulateLatency(750)
-    setVerifying(false)
 
-    if (otp === DEMO_OTP) {
+    setVerifying(true)
+    try {
+      const res = await apiClient.post<{ signupToken: string; message: string }>(
+        '/auth/signup/verify-otp',
+        {
+          email: email.trim().toLowerCase(),
+          otp: otp.trim(),
+        }
+      )
+
       setVerified(true)
-      await simulateLatency(950)
-      onVerified()
-    } else {
-      setError(`Incorrect demo OTP. Use ${DEMO_OTP} to continue.`)
+      setTimeout(() => {
+        onVerified(res.signupToken)
+      }, 700)
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Failed to verify OTP. Please try again.')
+      }
       setOtp('')
+    } finally {
+      setVerifying(false)
     }
   }
 
-  const handleResend = () => {
-    start()
-    setNotice(`Demo mode — no email was sent. The OTP remains ${DEMO_OTP}.`)
+  const handleResend = async () => {
+    if (resending || isRunning) return
     setError(null)
+    setNotice(null)
+    setResending(true)
+
+    try {
+      await apiClient.post('/auth/signup/request-otp', {
+        email: email.trim().toLowerCase(),
+        role: role.toUpperCase(),
+      })
+      start()
+      setNotice('A new verification code has been sent to your email.')
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Failed to resend code. Please try again.')
+      }
+    } finally {
+      setResending(false)
+    }
   }
 
   if (verified) {
@@ -59,7 +91,7 @@ export function EmailOtpStep({ email, onChangeEmail, onVerified }: EmailOtpStepP
         </div>
         <p className="fade-scale-in font-display text-2xl text-forest">Email verified</p>
         <p className="fade-scale-in mt-2 text-sm text-ink-soft" style={{ animationDelay: '0.15s' }}>
-          Verifying your details…
+          Proceeding to account details…
         </p>
       </div>
     )
@@ -72,9 +104,8 @@ export function EmailOtpStep({ email, onChangeEmail, onVerified }: EmailOtpStepP
         title="Check your inbox"
         subtitle={
           <>
-            We&apos;d normally email a six-digit code to{' '}
-            <strong className="font-semibold text-ink">{email}</strong>. This build simulates
-            verification — no email is actually sent.
+            We have sent a six-digit verification code to{' '}
+            <strong className="font-semibold text-ink">{email}</strong>. Enter the code below to continue.
           </>
         }
       />
@@ -93,16 +124,6 @@ export function EmailOtpStep({ email, onChangeEmail, onVerified }: EmailOtpStepP
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
           Change
         </button>
-      </div>
-
-      {/* Demo indicator */}
-      <div className="mb-6 flex items-start gap-2.5 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-        <span>
-          <strong className="font-bold uppercase tracking-wide">Demo mode</strong> — use OTP{' '}
-          <strong className="font-mono text-[13px] tracking-widest">{DEMO_OTP}</strong> to simulate
-          verification.
-        </span>
       </div>
 
       <div className="fade-scale-in">
@@ -146,10 +167,11 @@ export function EmailOtpStep({ email, onChangeEmail, onVerified }: EmailOtpStepP
           <button
             type="button"
             onClick={handleResend}
-            className="inline-flex items-center gap-1.5 font-semibold text-forest transition-colors hover:text-gold-dark"
+            disabled={resending}
+            className="inline-flex items-center gap-1.5 font-semibold text-forest transition-colors hover:text-gold-dark disabled:opacity-50"
           >
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            Resend OTP
+            <RefreshCw className={resending ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} aria-hidden />
+            {resending ? 'Sending…' : 'Resend OTP'}
           </button>
         )}
       </div>

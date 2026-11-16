@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
@@ -215,14 +214,13 @@ export function OwnerComplaints() {
     <div>
       <AdminPageHeader
         title="Complaints"
-        description={`${openCount} open of ${ownComplaints.length} demo complaints across your properties — respond, re-prioritise or resolve.`}
+        description={`${openCount} open of ${ownComplaints.length} complaints across your properties — respond, re-prioritise or resolve.`}
         actions={
           <Button variant="outline" size="md" onClick={() => setStatusFilter('OPEN')}>
             Show open only
           </Button>
         }
       />
-      <DemoBanner message="complaint tickets, priorities and histories are illustrative samples for interface demonstration only." />
 
       <DataTable
         columns={columns}
@@ -230,7 +228,7 @@ export function OwnerComplaints() {
         rowKey={(c) => c.id}
         pageSize={8}
         emptyTitle="No complaints found"
-        emptyDescription="No demo complaints match the current filters — try clearing a filter."
+        emptyDescription="No complaints match the current filters — try clearing a filter."
         toolbar={
           <div className="flex w-full flex-wrap items-end gap-3">
             <SearchInput
@@ -268,7 +266,7 @@ export function OwnerComplaints() {
               </Button>
             )}
             <span className="ml-auto text-[12px] font-semibold text-ink-mute">
-              {filtered.length} of {ownComplaints.length} · demo data
+              {filtered.length} of {ownComplaints.length}
             </span>
           </div>
         }
@@ -279,7 +277,7 @@ export function OwnerComplaints() {
           <EmptyState
             icon={<Inbox size={40} strokeWidth={1.4} />}
             title="No complaints yet"
-            description="Tickets raised by your students will land here (demo)."
+            description="Tickets raised by your residents will land here."
           />
         </div>
       )}
@@ -287,15 +285,15 @@ export function OwnerComplaints() {
       <ComplaintDetailModal
         complaint={selected}
         viewer="OWNER"
-        viewerName="Rakesh Sharma (PG Owner)"
+        viewerName="PG Management"
         onClose={() => setSelectedId(null)}
         onStatusChange={(status: ComplaintStatus, note: string) => {
           if (!selected) return
           updateComplaintStatus(selected.id, status, note)
           pushToast(
             status === 'REJECTED'
-              ? `${selected.id} rejected — the student has been notified (demo).`
-              : `${selected.id} moved to ${COMPLAINT_STATUS_LABELS[status]} (demo).`,
+              ? `${selected.id} rejected — resident notified.`
+              : `${selected.id} moved to ${COMPLAINT_STATUS_LABELS[status]}.`,
             status === 'REJECTED' ? 'error' : 'success',
           )
         }}
@@ -305,8 +303,8 @@ export function OwnerComplaints() {
         }}
         onComment={(body: string) => {
           if (!selected) return
-          addComplaintComment(selected.id, 'OWNER', 'Rakesh Sharma (PG Owner)', body, 'Owner responded')
-          pushToast('Response sent to the student (demo).', 'success')
+          addComplaintComment(selected.id, 'OWNER', 'PG Management', body, 'Owner responded')
+          pushToast('Response sent to the resident.', 'success')
         }}
       />
     </div>

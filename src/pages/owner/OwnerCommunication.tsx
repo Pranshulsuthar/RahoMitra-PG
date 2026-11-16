@@ -11,7 +11,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect } from '../../components/admin/Filters'
 import { StatCard } from '../../components/admin/StatCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -20,7 +19,6 @@ import { EmptyState } from '../../components/common/EmptyState'
 import { ConversationList } from '../../components/communication/ConversationList'
 import { ChatPanel } from '../../components/communication/ChatPanel'
 import { cn } from '../../utils/cn'
-import { COMM_TODAY } from '../../data/communicationData'
 import {
   COMPLAINT_CATEGORY_LABELS,
   COMPLAINT_STATUS_LABELS,
@@ -30,6 +28,7 @@ import {
 import type { Complaint } from '../../types/communication'
 
 type TabId = 'MESSAGES' | 'COMPLAINTS'
+const getTodayIso = () => new Date().toISOString().slice(0, 10)
 
 /**
  * /owner/communication — Section 07 overview: private student conversations
@@ -142,14 +141,13 @@ export function OwnerCommunication() {
     <div>
       <AdminPageHeader
         title="Communication"
-        description="Private one-to-one chats with your students and a live snapshot of their complaints — demo data only."
+        description="Private one-to-one chats with your students and a live snapshot of their complaints."
         actions={
           <ButtonLink to="/owner/complaints" variant="outline" size="md">
             Open complaints <ArrowUpRight size={15} />
           </ButtonLink>
         }
       />
-      <DemoBanner message="conversations, messages and complaints below are illustrative samples — nothing here is delivered to a real device." />
 
       {/* stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -244,10 +242,10 @@ export function OwnerCommunication() {
                 { value: 'READ', label: 'Read only' },
               ]}
               viewer="OWNER"
-              today={COMM_TODAY}
+              today={getTodayIso()}
               previewFor={previewFor}
               emptyTitle="No conversations found"
-              emptyDescription="No demo threads match this search or filter."
+              emptyDescription="No conversations match this search or filter."
             />
           </div>
 
@@ -262,13 +260,13 @@ export function OwnerCommunication() {
                   ? `Room ${active.roomNumber} · ${
                       active.propertyId === 'pg-001'
                         ? 'Shree Shyam Boys PG'
-                        : 'Ashiana PG'
+                        : 'PG Property'
                     }`
                   : ''
               }
-              onSend={(text) => active && sendMessage(active.id, 'OWNER', 'Rakesh Sharma (PG Owner)', text)}
+              onSend={(text) => active && sendMessage(active.id, 'OWNER', 'PG Management', text)}
               onClose={() => setActiveId(null)}
-              today={COMM_TODAY}
+              today={getTodayIso()}
             />
           </div>
         </div>
@@ -278,7 +276,7 @@ export function OwnerCommunication() {
             <EmptyState
               icon={<Inbox size={40} strokeWidth={1.4} />}
               title="No complaints yet"
-              description="Complaints submitted by your students will appear here (demo)."
+              description="Complaints submitted by your students will appear here."
             />
           ) : (
             <ul className="space-y-3">
@@ -331,7 +329,7 @@ function ComplaintRow({ complaint }: { complaint: Complaint }) {
         {complaint.description}
       </p>
       <p className="mt-2 text-[11px] text-muted">
-        Status: {COMPLAINT_STATUS_LABELS[complaint.status]} · demo record
+        Status: {COMPLAINT_STATUS_LABELS[complaint.status]}
       </p>
     </li>
   )

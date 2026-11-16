@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { ComponentType, ReactNode } from 'react'
 import {
@@ -10,9 +11,11 @@ import {
   ArrowRight,
   Compass,
   Info,
+  Loader2,
 } from 'lucide-react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { getPGBySlug } from '../data/pgData'
+import { fetchPGBySlug } from '../api/pg'
+import type { PG } from '../types'
 import { formatINR } from '../utils/format'
 import { PageHeader } from '../components/common/PageHeader'
 import { Badge, DemoBadge } from '../components/common/Badge'
@@ -46,20 +49,54 @@ function SectionBlock({
 
 export function PGDetails() {
   const { slug = '' } = useParams()
-  const pg = getPGBySlug(slug)
-  useDocumentTitle(pg ? pg.name : 'Property not found')
+  const [pg, setPg] = useState<PG | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!pg) {
+  const loadProperty = async () => {
+    if (!slug) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const data = await fetchPGBySlug(slug)
+      setPg(data)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Property not found'
+      setError(message)
+      setPg(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProperty()
+  }, [slug])
+
+  useDocumentTitle(pg ? pg.name : isLoading ? 'Loading...' : 'Property not found')
+
+  if (isLoading) {
+    return (
+      <section className="flex min-h-[400px] items-center justify-center bg-white py-20">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-forest" />
+          <p className="text-sm font-medium text-ink-soft">Loading property details…</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (!pg || error) {
     return (
       <section className="bg-white py-20">
         <div className="page-container">
           <EmptyState
             title="Property not found"
-            description="This listing does not exist on the demo build. It may have been removed, or the link may be incorrect."
+            description="This listing does not exist or is no longer active. It may have been removed, or the link may be incorrect."
             action={
               <ButtonLink to="/explore" variant="primary">
                 <Compass className="h-4 w-4" aria-hidden />
-                Browse demo PGs
+                Browse active PGs
               </ButtonLink>
             }
           />

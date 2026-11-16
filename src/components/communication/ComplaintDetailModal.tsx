@@ -7,7 +7,6 @@ import { StatusBadge } from '../admin/StatusBadge'
 import { Button } from '../common/Button'
 import { EmptyState } from '../common/EmptyState'
 import { FormSelect, FormTextarea } from '../owner/FormInput'
-import { commPropertyName } from '../../data/communicationData'
 import {
   COMPLAINT_CATEGORY_LABELS,
   COMPLAINT_STATUS_LABELS,
@@ -105,7 +104,7 @@ export function ComplaintDetailModal({
       {/* summary strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Fact label="Student" value={complaint.studentName} />
-        <Fact label="PG" value={commPropertyName(complaint.propertyId)} />
+        <Fact label="PG" value="PG Accommodation" />
         <Fact label="Room" value={`Room ${complaint.roomNumber}`} />
         <Fact label="Status">
           <StatusBadge status={complaint.status} />

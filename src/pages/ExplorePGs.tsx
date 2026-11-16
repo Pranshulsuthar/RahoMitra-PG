@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { AlertCircle, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { usePGFilters } from '../hooks/usePGFilters'
 import { useAdminStore } from '../context/AdminStore'
@@ -16,7 +16,7 @@ const CATEGORY_VALUES: PGCategory[] = ['Boys', 'Girls', 'Co-living']
 
 export function ExplorePGs() {
   useDocumentTitle('Explore PGs')
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // Initial state is derived from the hero search query string.
   const initial = useMemo(() => {
@@ -41,9 +41,28 @@ export function ExplorePGs() {
     clearFilters,
     results,
     isLoading,
+    error,
+    refetch,
     activeFilterCount,
     total,
   } = usePGFilters(initial)
+
+  // Keep URL query parameters in sync with active filters
+  useEffect(() => {
+    const nextParams = new URLSearchParams()
+    if (filters.locality.trim()) nextParams.set('locality', filters.locality.trim())
+    if (filters.categories.length === 1) nextParams.set('type', filters.categories[0])
+    if (filters.minRent !== '') nextParams.set('minRent', String(filters.minRent))
+    if (filters.maxRent !== '') nextParams.set('maxRent', String(filters.maxRent))
+    if (filters.sharing !== 'Any') nextParams.set('sharing', filters.sharing)
+    if (filters.sort !== 'default') nextParams.set('sort', filters.sort)
+    if (filters.ac) nextParams.set('ac', 'true')
+    if (filters.wifi) nextParams.set('wifi', 'true')
+    if (filters.food) nextParams.set('food', 'true')
+    if (filters.laundry) nextParams.set('laundry', 'true')
+
+    setSearchParams(nextParams, { replace: true })
+  }, [filters, setSearchParams])
 
   /* Section 08 — approved + active featured listings get a Featured badge. */
   const { featuredRequests } = useAdminStore()
@@ -63,7 +82,7 @@ export function ExplorePGs() {
     <>
       <PageHeader
         title="Explore PGs"
-        subtitle="Search by locality, filter by PG type, budget and facilities, then shortlist the stays that fit you best. All listings on this build are illustrative demo data."
+        subtitle="Search by locality, filter by PG type, budget and facilities, then shortlist the stays that fit you best."
         crumbs={[{ label: 'Home', to: '/' }, { label: 'Explore PGs' }]}
       />
 
@@ -87,12 +106,14 @@ export function ExplorePGs() {
                 <div>
                   <p className="text-sm text-ink-soft" role="status" aria-live="polite">
                     {isLoading ? (
-                      'Loading demo listings…'
+                      'Loading properties…'
+                    ) : error ? (
+                      <span className="text-rose-600 font-medium">Failed to load properties</span>
                     ) : (
                       <>
                         <span className="font-semibold text-ink">{results.length}</span>{' '}
                         {results.length === 1 ? 'property' : 'properties'} found
-                        <span className="text-ink-mute"> · {total} demo listings total</span>
+                        <span className="text-ink-mute"> · {total} verified properties</span>
                       </>
                     )}
                   </p>
@@ -136,9 +157,21 @@ export function ExplorePGs() {
                 </div>
               </div>
 
-              {/* Results */}
+              {/* Results, Loading, Error, and Empty States */}
               {isLoading ? (
                 <PGGrid listings={[]} isLoading />
+              ) : error ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-8 text-center">
+                  <AlertCircle className="mx-auto h-10 w-10 text-rose-500" />
+                  <h3 className="mt-3 text-base font-semibold text-rose-900">
+                    Unable to load properties
+                  </h3>
+                  <p className="mt-1 text-sm text-rose-700">{error}</p>
+                  <Button variant="primary" className="mt-4" onClick={() => refetch()}>
+                    <RotateCcw className="h-4 w-4 mr-1.5" />
+                    Try Again
+                  </Button>
+                </div>
               ) : results.length === 0 ? (
                 <EmptyState
                   title="No PGs match your filters"
@@ -152,12 +185,6 @@ export function ExplorePGs() {
               ) : (
                 <PGGrid listings={results} featuredMap={featuredMap} />
               )}
-
-              <p className="mt-8 rounded-xl border border-dashed border-line bg-ivory/60 px-4 py-3 text-[12px] leading-relaxed text-ink-soft">
-                <strong className="font-semibold text-ink">Note:</strong> all properties, prices and
-                availability on this page are illustrative demo data created for interface
-                demonstration. Contact details are intentionally not published for demo listings.
-              </p>
             </div>
           </div>
         </div>

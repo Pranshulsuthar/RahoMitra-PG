@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import {
   BarChart3,
   Bell,
@@ -84,6 +85,7 @@ interface SidebarProps {
 /** Fixed navigation rail — collapsible on desktop, drawer on mobile. */
 export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onToggleCollapse }: SidebarProps) {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [logoutOpen, setLogoutOpen] = useState(false)
 
   const rail = (
@@ -113,13 +115,6 @@ export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onToggleCollapse
             <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
             Super Admin
           </span>
-        </span>
-      </div>
-
-      {/* Demo mode indicator */}
-      <div className={cn('px-5 pt-4', collapsed && 'lg:hidden')}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/15 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold">
-          Demo mode
         </span>
       </div>
 
@@ -240,17 +235,16 @@ export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onToggleCollapse
       <ConfirmDialog
         open={logoutOpen}
         title="Logout of Super Admin?"
-        message={
-          <>
-            This ends the demo admin session and returns you to the Admin Login screen. No real
-            session exists — this is a frontend-only demo.
-          </>
-        }
+        message="Are you sure you want to end your current session? You can sign back in anytime."
         confirmLabel="Logout"
         danger
-        onConfirm={() => {
+        onConfirm={async () => {
           setLogoutOpen(false)
-          navigate('/login/admin')
+          try {
+            await logout()
+          } finally {
+            navigate('/login/admin')
+          }
         }}
         onCancel={() => setLogoutOpen(false)}
       />

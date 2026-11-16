@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -13,9 +13,12 @@ import {
   KeyRound,
   Home as HomeIcon,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { FEATURED_PG_LISTINGS, HERO_IMAGE } from '../data/pgData'
+import { HERO_IMAGE } from '../utils/constants'
+import { fetchLocalities, fetchPGs } from '../api/pg'
+import type { LocalityOption, PG } from '../types'
 import { BUDGET_OPTIONS, LOCALITY_OPTIONS } from '../utils/constants'
 import { IntroSplash, isIntroPlayed } from '../components/common/IntroSplash'
 import { PGCard } from '../components/pg/PGCard'
@@ -83,6 +86,33 @@ export function Home() {
   const [locality, setLocality] = useState('')
   const [type, setType] = useState('All')
   const [budgetIndex, setBudgetIndex] = useState('0')
+  const [localities, setLocalities] = useState<LocalityOption[]>(LOCALITY_OPTIONS)
+  const [featuredListings, setFeaturedListings] = useState<PG[]>([])
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(false)
+
+  useEffect(() => {
+    // Fetch live localities for hero search autocomplete
+    fetchLocalities()
+      .then((locs) => {
+        if (locs && locs.length > 0) {
+          setLocalities(locs)
+        }
+      })
+      .catch(() => {})
+
+    // Fetch live approved & active properties
+    setIsLoadingFeatured(true)
+    fetchPGs({ limit: 4 })
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setFeaturedListings(res.data)
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setIsLoadingFeatured(false)
+      })
+  }, [])
 
   const handleSearch = (event: FormEvent) => {
     event.preventDefault()
@@ -104,7 +134,7 @@ export function Home() {
         <IntroSplash />
         <ImageWithFallback
           src={HERO_IMAGE}
-          alt="Premium accommodation (demo photograph)"
+          alt="Premium accommodation"
           loading="eager"
           className="absolute inset-0 h-full w-full object-cover"
         />
@@ -176,7 +206,7 @@ export function Home() {
                     className="form-input bg-ivory/70 pl-10"
                   />
                   <datalist id="locality-options">
-                    {LOCALITY_OPTIONS.map((option) => (
+                    {localities.map((option) => (
                       <option
                         key={`${option.city}-${option.locality}`}
                         value={`${option.locality}, ${option.city}`}
@@ -240,7 +270,7 @@ export function Home() {
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line px-1 pt-3">
               <p className="text-[11px] text-ink-mute">
-                Demo search — results come from illustrative sample listings on this build.
+                Search verified properties by locality, budget, and sharing preferences.
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-mute">
@@ -265,33 +295,44 @@ export function Home() {
       {/* ------------------------------------------------- FEATURED PGs */}
       <section className="bg-white py-16 sm:py-20" aria-labelledby="featured-heading">
         <div className="page-container">
-          <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gold-dark">
-              Featured stays
-            </span>
-            <span className="rounded-full border border-gold/40 bg-gold-soft px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold-dark">
-              Demo listings · sample data
-            </span>
-          </div>
           <SectionHeading
             eyebrow="Featured stays"
-            title="Handpicked demo PGs to get you started"
-            description="These sample listings show exactly how properties appear on RahoMitra. Every detail — pricing, address and availability — is illustrative demo data."
+            title="Handpicked verified accommodations"
+            description="Discover top-rated PG accommodations verified and active on the RahoMitra platform."
             className="mb-10"
           />
 
           <div className="grid gap-6 sm:grid-cols-2 lg:max-w-4xl lg:mx-auto">
-            {FEATURED_PG_LISTINGS.map((pg) => (
-              <PGCard key={pg.id} pg={pg} />
-            ))}
+            {isLoadingFeatured ? (
+              <div className="col-span-full flex min-h-[220px] items-center justify-center">
+                <Loader2 className="h-7 w-7 animate-spin text-forest" />
+              </div>
+            ) : featuredListings.length > 0 ? (
+              featuredListings.map((pg) => <PGCard key={pg.id} pg={pg} />)
+            ) : (
+              <div className="col-span-full rounded-3xl border border-line bg-ivory/50 p-10 text-center">
+                <Building2 className="mx-auto mb-3 h-10 w-10 text-gold-dark" />
+                <h3 className="text-lg font-bold text-ink">No featured PGs listed yet</h3>
+                <p className="mt-1 text-sm text-ink-soft">
+                  New verified accommodations will appear here soon. Explore all active listings or register your property today.
+                </p>
+                <div className="mt-6 flex justify-center gap-3">
+                  <ButtonLink to="/explore" variant="outline" size="sm">
+                    Browse All PGs
+                  </ButtonLink>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-10 text-center">
-            <ButtonLink to="/explore" variant="outline" size="lg">
-              Explore all demo PGs
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </ButtonLink>
-          </div>
+          {featuredListings.length > 0 && (
+            <div className="mt-10 text-center">
+              <ButtonLink to="/explore" variant="outline" size="lg">
+                Explore all PGs
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </ButtonLink>
+            </div>
+          )}
         </div>
       </section>
 

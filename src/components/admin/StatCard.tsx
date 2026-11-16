@@ -38,7 +38,6 @@ export function StatCard({ label, value, icon: Icon, hint, trend = 'neutral', to
             ) : (
               <TrendingDown className="h-3.5 w-3.5" aria-hidden />
             )}
-            demo
           </span>
         )}
       </div>

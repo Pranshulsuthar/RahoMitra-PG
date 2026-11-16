@@ -91,10 +91,6 @@ export function Footer() {
             A centralized platform where students discover PG accommodations, compare facilities and
             rent, and connect directly with owners — no middlemen, no hidden details.
           </p>
-          <p className="mt-4 rounded-xl border border-gold/30 bg-forest-dark/60 px-4 py-3 text-[11px] leading-relaxed text-ivory/60">
-            All listings on this demo build are illustrative sample data and are not verified
-            real-world properties.
-          </p>
         </div>
 
         {/* Quick links */}

@@ -1,0 +1,939 @@
+// Prisma schema for RahoMitra PostgreSQL Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  STUDENT
+  OWNER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum PGCategory {
+  BOYS
+  GIRLS
+  CO_LIVING
+}
+
+enum PropertyStatus {
+  ACTIVE
+  PENDING
+  DRAFT
+  PAUSED
+  REJECTED
+  SUSPENDED
+}
+
+enum FoodOption {
+  INCLUDED
+  PAID
+  NOT_AVAILABLE
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  QUAD
+  CUSTOM
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum AdmissionCodeStatus {
+  ACTIVE
+  USED
+  REVOKED
+  EXPIRED
+}
+
+enum AdmissionRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BillStatus {
+  DRAFT
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+enum PaymentMethod {
+  UPI
+  CASH
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  SUCCESS
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum ComplaintCategory {
+  ELECTRICITY
+  WATER_SUPPLY
+  WIFI
+  FOOD_QUALITY
+  CLEANLINESS
+  ROOM_MAINTENANCE
+  FURNITURE
+  SECURITY
+  STAFF_BEHAVIOUR
+  OTHER
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ComplaintStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum ComplaintActor {
+  STUDENT
+  OWNER
+  ADMIN
+}
+
+enum ComplaintEventKind {
+  STATUS
+  RESPONSE
+  COMMENT
+  PRIORITY
+}
+
+enum AnnouncementCategory {
+  GENERAL
+  MAINTENANCE
+  ELECTRICITY_WATER
+  FOOD_MESS
+  RENT_REMINDER
+  RULES
+  EMERGENCY
+}
+
+enum AnnouncementPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum AnnouncementAudience {
+  ALL
+  SELECTED
+}
+
+enum CommNotificationKind {
+  MESSAGE
+  COMPLAINT
+  ANNOUNCEMENT
+  MAINTENANCE
+}
+
+enum PlatformTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NotificationCategory {
+  PLATFORM
+  SUBSCRIPTION
+  FEATURE
+  MAINTENANCE
+  SUPPORT
+}
+
+enum NotificationAudience {
+  ALL_OWNERS
+  ALL_STUDENTS
+  SELECTED_OWNERS
+}
+
+enum PlanStatus {
+  ENABLED
+  DISABLED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  CANCELLED
+  TRIAL
+  PENDING
+}
+
+enum FeaturedTier {
+  FEATURED
+  PREMIUM_FEATURED
+}
+
+enum FeaturedRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum FeaturedListingStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+enum AdCategory {
+  TIFFIN_SERVICES
+  LAUNDRY_SERVICES
+  FURNITURE
+  INTERNET_SERVICES
+  LOCAL_TRANSPORT
+  OTHER
+}
+
+enum AdPlacement {
+  EXPLORE_BANNER
+  LISTING_CARD
+  SIDEBAR_RAIL
+  HOME_FOOTER
+}
+
+enum AdStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+  DRAFT
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id                String       @id @default(cuid())
+  email             String       @unique
+  passwordHash      String
+  role              Role         @default(STUDENT)
+  status            UserStatus   @default(ACTIVE)
+  fullName          String
+  mobile            String?
+  city              String?
+  bio               String?
+  emailVerifiedAt   DateTime?
+  failedLoginCount  Int          @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  sessions             Session[]
+  passwordResetTokens  PasswordResetToken[]
+  emailOtps            EmailOtp[]
+  properties           Property[]            @relation("OwnerProperties")
+  studentProfile       Student?              @relation("UserStudentProfile")
+  paymentDetails       PaymentDetails?       @relation("OwnerPaymentDetails")
+  notifications        Notification[]        @relation("UserNotifications")
+  subscriptions        Subscription[]        @relation("OwnerSubscriptions")
+  featuredRequests     FeaturedRequest[]     @relation("OwnerFeaturedRequests")
+  ticketsRaised        SupportTicket[]       @relation("TicketsRaised")
+  ticketsAssigned      SupportTicket[]       @relation("TicketsAssigned")
+  ticketReplies        TicketReply[]         @relation("UserTicketReplies")
+  activityLogs         ActivityLog[]         @relation("UserActivityLogs")
+  platformPayments     PlatformPayment[]     @relation("OwnerPlatformPayments")
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Session {
+  id                String    @id @default(cuid())
+  userId            String
+  familyId          String    @default(cuid())
+  refreshTokenHash  String    @unique
+  previousTokenHash String?
+  rotatedAt         DateTime?
+  userAgent         String?
+  ipAddress         String?
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+model EmailOtp {
+  id             String    @id @default(cuid())
+  userId         String?
+  email          String
+  otpHash        String
+  purpose        String
+  failedAttempts Int       @default(0)
+  ipAddress      String?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose])
+  @@map("email_otps")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model OwnerApplication {
+  id              String            @id @default(cuid())
+  ownerName       String
+  email           String
+  pgName          String
+  city            String
+  category        PGCategory
+  submittedOn     DateTime          @default(now())
+  status          ApplicationStatus @default(PENDING)
+  rejectionReason String?
+  note            String            @default("")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("owner_applications")
+}
+
+model Property {
+  id              String         @id @default(cuid())
+  ownerId         String
+  name            String
+  slug            String         @unique
+  type            PGCategory
+  description     String         @default("")
+  city            String
+  address         String         @default("")
+  locality        String
+  contactPhone    String         @default("")
+  contactEmail    String         @default("")
+  securityDeposit Int            @default(0) // Integer INR
+  facilities      String[]       @default([])
+  food            FoodOption     @default(NOT_AVAILABLE)
+  rules           String[]       @default([])
+  coverImage      String         @default("")
+  gallery         String[]       @default([])
+  status          PropertyStatus @default(PENDING)
+  statusNote      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  owner             User               @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
+  rooms             Room[]
+  students          Student[]
+  admissionCodes    AdmissionCode[]
+  admissionRequests AdmissionRequest[]
+  staff             Staff[]
+  rentBills         RentBill[]
+  payments          Payment[]
+  conversations     Conversation[]
+  complaints        Complaint[]
+  announcements     Announcement[]
+  featuredRequests  FeaturedRequest[]
+
+  @@index([ownerId])
+  @@index([city, locality])
+  @@index([status])
+  @@map("properties")
+}
+
+model Room {
+  id         String   @id @default(cuid())
+  propertyId String
+  number     String
+  floor      Int      @default(0)
+  type       RoomType @default(SINGLE)
+  rent       Int      @default(0) // Integer INR
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  property   Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  beds       Bed[]
+  students   Student[]
+  rentBills  RentBill[]
+  complaints Complaint[]
+
+  @@unique([propertyId, number])
+  @@index([propertyId])
+  @@map("rooms")
+}
+
+model Bed {
+  id        String    @id @default(cuid())
+  roomId    String
+  label     String
+  status    BedStatus @default(AVAILABLE)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  student Student?
+
+  @@unique([roomId, label])
+  @@index([roomId])
+  @@map("beds")
+}
+
+model Student {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  propertyId       String?
+  roomId           String?
+  bedId            String?          @unique
+  college          String           @default("")
+  city             String           @default("")
+  emergencyContact String           @default("")
+  admissionDate    DateTime         @default(now())
+  membership       MembershipStatus @default(PENDING)
+  settings         Json?            @default("{}")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user              User               @relation("UserStudentProfile", fields: [userId], references: [id], onDelete: Cascade)
+  property          Property?          @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  room              Room?              @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  bed               Bed?               @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  rentBills         RentBill[]
+  payments          Payment[]
+  conversations     Conversation[]
+  complaints        Complaint[]
+  announcementReads AnnouncementRead[]
+
+  @@index([propertyId])
+  @@index([roomId])
+  @@map("students")
+}
+
+model AdmissionCode {
+  id             String              @id @default(cuid())
+  propertyId     String
+  code           String              @unique
+  roomPreference String?
+  expiresOn      DateTime
+  status         AdmissionCodeStatus @default(ACTIVE)
+  createdOn      DateTime            @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("admission_codes")
+}
+
+model AdmissionRequest {
+  id             String                 @id @default(cuid())
+  propertyId     String
+  code           String
+  roomPreference String?
+  studentName    String
+  studentEmail   String
+  studentMobile  String
+  requestedOn    DateTime               @default(now())
+  status         AdmissionRequestStatus @default(PENDING)
+  decidedOn      DateTime?
+  reason         String?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([studentEmail])
+  @@map("admission_requests")
+}
+
+model Staff {
+  id         String   @id @default(cuid())
+  propertyId String
+  name       String
+  email      String
+  mobile     String
+  role       String
+  joinedOn   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("staff")
+}
+
+model RentBill {
+  id          String     @id @default(cuid())
+  propertyId  String
+  studentId   String
+  roomId      String
+  roomNumber  String
+  bedLabel    String
+  month       String // ISO yyyy-mm
+  rent        Int        @default(0) // Integer INR
+  electricity Int        @default(0)
+  water       Int        @default(0)
+  maintenance Int        @default(0)
+  food        Int        @default(0)
+  extra       Int        @default(0)
+  discount    Int        @default(0)
+  dueDate     DateTime
+  notes       String     @default("")
+  draft       Boolean    @default(false)
+  paidAmount  Int        @default(0)
+  status      BillStatus @default(UNPAID)
+  generatedOn DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  property Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  room     Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([propertyId])
+  @@index([studentId])
+  @@index([month])
+  @@unique([studentId, month])
+  @@map("rent_bills")
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  billId     String
+  propertyId String
+  studentId  String
+  amount     Int // Integer INR
+  method     PaymentMethod @default(UPI)
+  reference  String        @default("")
+  date       DateTime
+  notes      String        @default("")
+  recordedOn DateTime      @default(now())
+  createdAt  DateTime      @default(now())
+
+  bill     RentBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+  @@index([propertyId])
+  @@index([studentId])
+  @@map("payments")
+}
+
+model PaymentDetails {
+  id            String   @id @default(cuid())
+  ownerId       String   @unique
+  upiId         String   @default("")
+  accountHolder String   @default("")
+  instructions  String   @default("")
+  qrImage       String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner User @relation("OwnerPaymentDetails", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("payment_details")
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  propertyId    String
+  studentId     String
+  ownerUnread   Int      @default(0)
+  studentUnread Int      @default(0)
+  lastMessageOn DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  property Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  student  Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@unique([propertyId, studentId])
+  @@index([propertyId])
+  @@index([studentId])
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  sender         ComplaintActor
+  senderName     String
+  text           String
+  read           Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Complaint {
+  id          String            @id @default(cuid())
+  propertyId  String
+  studentId   String
+  roomId      String
+  roomNumber  String
+  category    ComplaintCategory
+  subject     String
+  description String
+  priority    ComplaintPriority @default(MEDIUM)
+  status      ComplaintStatus   @default(SUBMITTED)
+  submittedOn DateTime          @default(now())
+  image       String            @default("")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  property Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  student  Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  room     Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  events   ComplaintEvent[]
+
+  @@index([propertyId])
+  @@index([studentId])
+  @@index([status])
+  @@map("complaints")
+}
+
+model ComplaintEvent {
+  id          String             @id @default(cuid())
+  complaintId String
+  actor       ComplaintActor
+  actorName   String
+  kind        ComplaintEventKind
+  title       String
+  body        String             @default("")
+  status      ComplaintStatus?
+  createdAt   DateTime           @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@map("complaint_events")
+}
+
+model Announcement {
+  id                 String               @id @default(cuid())
+  propertyId         String
+  title              String
+  message            String
+  category           AnnouncementCategory @default(GENERAL)
+  priority           AnnouncementPriority @default(NORMAL)
+  audience           AnnouncementAudience @default(ALL)
+  audienceStudentIds String[]             @default([])
+  publishedOn        DateTime             @default(now())
+  expiresOn          DateTime?
+  published          Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  property Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reads    AnnouncementRead[]
+
+  @@index([propertyId])
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String   @id @default(cuid())
+  announcementId String
+  studentId      String
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, studentId])
+  @@index([announcementId])
+  @@map("announcement_reads")
+}
+
+model Notification {
+  id        String                @id @default(cuid())
+  userId    String
+  role      Role
+  category  NotificationCategory  @default(PLATFORM)
+  title     String
+  body      String
+  link      String                @default("")
+  kind      CommNotificationKind? @default(MESSAGE)
+  read      Boolean               @default(false)
+  createdAt DateTime              @default(now())
+
+  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model Plan {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  tagline        String       @default("")
+  features       String[]     @default([])
+  priceMonthly   Int          @default(0) // Integer INR
+  priceYearly    Int          @default(0) // Integer INR
+  status         PlanStatus   @default(ENABLED)
+  propertyLimit  Int          @default(1)
+  billing        BillingCycle @default(MONTHLY)
+  featureToggles Json?        @default("[]")
+  isCustom       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  ownerId   String
+  planId    String
+  cycle     BillingCycle       @default(MONTHLY)
+  startOn   DateTime           @default(now())
+  expiryOn  DateTime
+  status    SubscriptionStatus @default(ACTIVE)
+  amount    Int                @default(0) // Integer INR
+  suspended Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  owner  User                @relation("OwnerSubscriptions", fields: [ownerId], references: [id], onDelete: Cascade)
+  plan   Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+  events SubscriptionEvent[]
+
+  @@index([ownerId])
+  @@index([planId])
+  @@map("subscriptions")
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  text           String
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("subscription_events")
+}
+
+model FeaturedRequest {
+  id             String                @id @default(cuid())
+  propertyId     String
+  ownerId        String
+  tier           FeaturedTier          @default(FEATURED)
+  amount         Int                   @default(0) // Integer INR
+  requestedOn    DateTime              @default(now())
+  status         FeaturedRequestStatus @default(PENDING)
+  durationMonths Int                   @default(1)
+  startOn        DateTime?
+  endOn          DateTime?
+  listingStatus  FeaturedListingStatus @default(ACTIVE)
+  rejectReason   String?
+  history        Json?                 @default("[]")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  owner    User     @relation("OwnerFeaturedRequests", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([ownerId])
+  @@map("featured_requests")
+}
+
+model Advertisement {
+  id             String      @id @default(cuid())
+  businessName   String
+  category       AdCategory  @default(OTHER)
+  title          String
+  description    String      @default("")
+  destinationUrl String      @default("")
+  imagePreview   String      @default("")
+  targetCity     String      @default("")
+  targetLocality String      @default("")
+  placement      AdPlacement @default(EXPLORE_BANNER)
+  startOn        DateTime
+  endOn          DateTime
+  price          Int         @default(0) // Integer INR
+  status         AdStatus    @default(DRAFT)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([status])
+  @@index([placement])
+  @@map("advertisements")
+}
+
+model SupportTicket {
+  id            String               @id @default(cuid())
+  submittedById String
+  userRole      Role
+  category      String               @default("General")
+  subject       String
+  description   String
+  priority      TicketPriority       @default(MEDIUM)
+  status        PlatformTicketStatus @default(OPEN)
+  assignedToId  String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  submittedBy User          @relation("TicketsRaised", fields: [submittedById], references: [id], onDelete: Cascade)
+  assignedTo  User?         @relation("TicketsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  replies     TicketReply[]
+
+  @@index([submittedById])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketReply {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorId   String
+  authorName String
+  role       Role
+  text       String
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User          @relation("UserTicketReplies", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_replies")
+}
+
+model PlatformSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actorRole   Role?
+  action      String
+  entity      String
+  entityId    String?
+  description String   @default("")
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now())
+
+  actor User? @relation("UserActivityLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model PlatformPayment {
+  id        String        @id @default(cuid())
+  ownerId   String?
+  ownerName String
+  pgName    String
+  planId    String
+  amount    Int // Integer INR
+  paidOn    DateTime      @default(now())
+  status    PaymentStatus @default(SUCCESS)
+  method    String        @default("UPI")
+  createdAt DateTime      @default(now())
+
+  owner User? @relation("OwnerPlatformPayments", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("platform_payments")
+}
+

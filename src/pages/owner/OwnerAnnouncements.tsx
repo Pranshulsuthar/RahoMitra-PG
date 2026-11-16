@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { useCommunicationStore } from '../../context/CommunicationStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
@@ -13,7 +12,6 @@ import { Button } from '../../components/common/Button'
 import { EmptyState } from '../../components/common/EmptyState'
 import { FormInput, FormSelect, FormTextarea } from '../../components/owner/FormInput'
 import { cn } from '../../utils/cn'
-import { COMM_TODAY, commPropertyName } from '../../data/communicationData'
 import {
   ANNOUNCEMENT_CATEGORY_LABELS,
   ANNOUNCEMENT_PRIORITY_LABELS,
@@ -38,28 +36,28 @@ interface AnnForm {
   expiresOn: string
 }
 
+const getTodayIso = () => new Date().toISOString().slice(0, 10)
+
 const EMPTY_FORM: AnnForm = {
-  propertyId: 'pg-001',
+  propertyId: '',
   title: '',
   message: '',
   category: 'GENERAL',
   priority: 'NORMAL',
   audience: 'ALL',
   audienceStudentIds: [],
-  publishedOn: COMM_TODAY,
+  publishedOn: getTodayIso(),
   expiresOn: '',
 }
 
 /**
- * /owner/announcements — Section 07 notice board manager. Owners create,
- * edit, publish / unpublish and delete notices for their own properties, pick
- * the audience (everyone or selected students) and inspect who received it.
- * Only published + active announcements reach the student notice board.
+ * /owner/announcements — Notice board manager. Owners create,
+ * edit, publish / unpublish and delete notices for their properties.
  */
 export function OwnerAnnouncements() {
   useDocumentTitle('Announcements')
 
-  const { scopedPropertyIds, students } = useOwnerStore()
+  const { properties, scopedPropertyIds, students } = useOwnerStore()
   const {
     announcements,
     saveAnnouncement,
@@ -68,12 +66,18 @@ export function OwnerAnnouncements() {
     pushToast,
   } = useCommunicationStore()
 
+  const commPropertyName = (id: string) => properties.find((p) => p.id === id)?.name ?? 'PG Property'
+
   const [query, setQuery] = useState('')
   const [propertyFilter, setPropertyFilter] = useState('ALL')
   const [stateFilter, setStateFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT'>('ALL')
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<AnnForm>(EMPTY_FORM)
+  const [form, setForm] = useState<AnnForm>({
+    ...EMPTY_FORM,
+    publishedOn: getTodayIso(),
+    propertyId: scopedPropertyIds[0] ?? '',
+  })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [removing, setRemoving] = useState<Announcement | null>(null)
@@ -112,8 +116,9 @@ export function OwnerAnnouncements() {
     setEditingId(null)
     setForm({
       ...EMPTY_FORM,
+      publishedOn: getTodayIso(),
       propertyId:
-        propertyFilter !== 'ALL' ? propertyFilter : (scopedPropertyIds[0] ?? 'pg-001'),
+        propertyFilter !== 'ALL' ? propertyFilter : (scopedPropertyIds[0] ?? ''),
     })
     setErrors({})
     setSaving(false)
@@ -218,7 +223,6 @@ export function OwnerAnnouncements() {
           </Button>
         }
       />
-      <DemoBanner message="announcements are illustrative samples — publishing one never sends an email, SMS or push notification." />
 
       {/* quick stats */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -247,7 +251,7 @@ export function OwnerAnnouncements() {
           ]}
         />
         <span className="ml-auto text-[12px] font-semibold text-ink-mute">
-          {filtered.length} of {ownAnnouncements.length} · demo data
+          {filtered.length} of {ownAnnouncements.length}
         </span>
       </div>
 
@@ -259,8 +263,8 @@ export function OwnerAnnouncements() {
             title={ownAnnouncements.length === 0 ? 'No announcements yet' : 'No announcements found'}
             description={
               ownAnnouncements.length === 0
-                ? 'Create your first notice for your students (demo).'
-                : 'No demo announcements match the current search or filters.'
+                ? 'Create your first announcement to notify your residents.'
+                : 'No announcements match the current search or filters.'
             }
             action={
               ownAnnouncements.length === 0 ? (
@@ -286,7 +290,7 @@ export function OwnerAnnouncements() {
       ) : (
         <ul className="mt-4 space-y-3.5">
           {filtered.map((a) => {
-            const expired = a.expiresOn !== '' && a.expiresOn < COMM_TODAY
+            const expired = a.expiresOn !== '' && a.expiresOn < getTodayIso()
             return (
               <li
                 key={a.id}
