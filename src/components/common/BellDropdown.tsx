@@ -8,7 +8,7 @@ export interface BellItem {
   id: string
   title: string
   body: string
-  /** Raw date string — the component appends the demo suffix. */
+  /** Date text shown with the notification. */
   date: string
   read: boolean
   /** Small source chip, e.g. "Notice", "Message", "SUBSCRIPTION". */
@@ -125,16 +125,16 @@ export function BellDropdown({
             <button
               type="button"
               onClick={() => setOpenId(null)}
-              className="inline-flex items-center justify-center rounded-full border border-line bg-white px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink transition-colors hover:bg-ivory"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-line bg-white px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-ink-soft transition-colors hover:border-forest/40 hover:text-forest"
             >
-              Close
+              Back
             </button>
           </div>
         </div>
       ) : (
-        /* ----------------------------------------------------- list view */
+        /* ------------------------------------------------------- list view */
         <>
-          <div className="flex items-center justify-between border-b border-line bg-gradient-to-r from-forest to-forest-light px-4 py-3">
+          <div className="flex items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-forest to-forest-light px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-gold">
                 <Bell className="h-4 w-4" aria-hidden />
