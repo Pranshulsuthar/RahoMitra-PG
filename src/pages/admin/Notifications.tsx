@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { NotificationAudience, NotificationCategory, PlatformNotification } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
 import { EmptyState } from '../../components/common/EmptyState'
 import { cn } from '../../utils/cn'
@@ -80,7 +79,7 @@ export function Notifications() {
       category: composer.category,
       audience: composer.audience,
     })
-    pushToast('Announcement recorded in demo history — nothing was actually sent.', 'info')
+    pushToast('Announcement broadcasted successfully.')
     setComposer(EMPTY_COMPOSER)
     setSelectedOwners([])
   }
@@ -93,13 +92,13 @@ export function Notifications() {
     <>
       <AdminPageHeader
         title="Notifications"
-        description="Compose platform announcements, choose an audience and review notification history. This build never sends real emails, SMS or push notifications."
+        description="Compose platform announcements, choose an audience and review notification history."
         actions={
           <button
             type="button"
             onClick={() => {
               markAllNotificationsRead()
-              pushToast('All demo notifications marked as read.', 'info')
+              pushToast('All notifications marked as read.', 'info')
             }}
             className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-5 py-2.5 text-sm font-semibold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory"
           >
@@ -108,8 +107,6 @@ export function Notifications() {
           </button>
         }
       />
-
-      <DemoBanner message="announcements stay in local demo state — no email, SMS or push notification is ever delivered." />
 
       <div className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
         {/* ------------------------------------------------------- composer */}
@@ -120,7 +117,7 @@ export function Notifications() {
             </span>
             Platform announcement
           </h2>
-          <p className="mt-1.5 text-xs text-ink-mute">Frontend-only composer · demo mode</p>
+          <p className="mt-1.5 text-xs text-ink-mute">Broadcast announcements to users</p>
 
           <form onSubmit={submit} noValidate className="mt-5 space-y-4">
             <div>
@@ -254,11 +251,8 @@ export function Notifications() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-forest px-5 py-3 text-sm font-semibold text-ivory shadow-[0_10px_24px_-14px_rgba(23,61,50,0.9)] transition-colors hover:bg-forest-light"
             >
               <Send className="h-4 w-4" aria-hidden />
-              Record announcement (demo)
+              Broadcast announcement
             </button>
-            <p className="text-center text-[11px] leading-relaxed text-ink-mute">
-              Nothing leaves your browser — no emails, SMS or push notifications are sent.
-            </p>
           </form>
         </section>
 

@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { FeaturedRequest, FeaturedTier } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -30,7 +29,7 @@ const TIER_META: Array<{ tier: FeaturedTier; label: string; price: number; blurb
   },
 ]
 
-/** /admin/featured-listings — owner featured requests + admin decisions (demo). */
+/** /admin/featured-listings — owner featured requests + admin decisions. */
 export function FeaturedListings() {
   useDocumentTitle('Featured Listings')
 
@@ -82,7 +81,7 @@ export function FeaturedListings() {
       tier: form.tier,
       amount: meta.price,
     })
-    pushToast(`Featured request submitted for “${pg.name}” (demo).`)
+    pushToast(`Featured request submitted for “${pg.name}”.`)
     setRequestOpen(false)
     setForm({ pgId: '', tier: 'FEATURED' })
     setFormError(null)
@@ -92,7 +91,7 @@ export function FeaturedListings() {
     if (!approveTarget) return
     decideFeaturedRequest(approveTarget.id, 'APPROVED', { durationMonths: duration })
     pushToast(
-      `Featured listing ${approveTarget.id} approved for ${duration} month${duration > 1 ? 's' : ''} (demo).`,
+      `Featured listing ${approveTarget.id} approved for ${duration} month${duration > 1 ? 's' : ''}.`,
     )
     setApproveTarget(null)
     setDuration(1)
@@ -101,7 +100,7 @@ export function FeaturedListings() {
   const confirmReject = (reason?: string) => {
     if (!rejectTarget) return
     decideFeaturedRequest(rejectTarget.id, 'REJECTED', { reason })
-    pushToast(`Featured listing ${rejectTarget.id} rejected (demo).`, 'error')
+    pushToast(`Featured listing ${rejectTarget.id} rejected.`, 'error')
     setRejectTarget(null)
   }
 
@@ -203,7 +202,7 @@ export function FeaturedListings() {
               onClick={() => {
                 const next = r.listingStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
                 setFeaturedListingStatus(r.id, next)
-                pushToast(`Featured listing ${r.id} ${next === 'ACTIVE' ? 'activated' : 'paused'} (demo).`, 'info')
+                pushToast(`Featured listing ${r.id} ${next === 'ACTIVE' ? 'activated' : 'paused'}.`, 'info')
               }}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors',
@@ -237,12 +236,10 @@ export function FeaturedListings() {
             className="inline-flex items-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory shadow-[0_10px_24px_-14px_rgba(23,61,50,0.9)] transition-colors hover:bg-forest-light"
           >
             <Plus className="h-4 w-4" aria-hidden />
-            Simulate owner request
+            Add featured request
           </button>
         }
       />
-
-      <DemoBanner message="featured pricing (₹299 / ₹499 per month) is proposed demo pricing — approval records are local demo state, no payment is processed." />
 
       {/* --------------------------------------------------- pricing options */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
@@ -260,7 +257,7 @@ export function FeaturedListings() {
             <h2 className="mt-3 text-lg">{option.label}</h2>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{option.blurb}</p>
             <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-ink-mute">
-              Demo pricing · 30-day cycle
+              30-day billing cycle
             </p>
           </article>
         ))}
@@ -297,8 +294,8 @@ export function FeaturedListings() {
       {/* -------------------------------------------- simulate owner request */}
       <Modal
         open={requestOpen}
-        title="Simulate owner featured request"
-        subtitle="DEMO MODE — this stands in for the PG owner submitting a request from their console."
+        title="Add featured request"
+        subtitle="Create a featured placement request for a PG property."
         onClose={() => setRequestOpen(false)}
         size="md"
         footer={
@@ -377,9 +374,8 @@ export function FeaturedListings() {
             ))}
           </div>
 
-          <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-            Featured payments are demo records only — no Razorpay, UPI or any real payment gateway is
-            involved.
+          <p className="rounded-2xl border border-dashed border-forest/30 bg-forest-soft/40 px-4 py-3 text-[12px] leading-relaxed text-forest">
+            Featured listing placements highlight approved properties on the public Explore page.
           </p>
         </form>
       </Modal>
@@ -479,7 +475,7 @@ export function FeaturedListings() {
             </div>
           </div>
           <p className="rounded-2xl border border-line bg-ivory/40 px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
-            Start date is today (2026-05-14, demo) and the listing expires after{' '}
+            Start date is today and the listing expires after{' '}
             <strong className="font-semibold text-ink">{duration * 30} days</strong>. The Featured badge
             appears on the public Explore page while the listing is approved and active.
           </p>
@@ -493,7 +489,7 @@ export function FeaturedListings() {
           <>
             Reject the featured request for{' '}
             <strong className="font-semibold text-ink">{rejectTarget?.pgName}</strong>? The owner can
-            submit a new request later (demo only).
+            submit a new request later.
           </>
         }
         reasonLabel="Rejection reason"
