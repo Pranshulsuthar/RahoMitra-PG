@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { AdCategory, AdPlacement, Advertisement } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -56,7 +55,7 @@ const EMPTY_FORM: AdFormState = {
   price: '2000',
 }
 
-/** /admin/advertisements — platform ad campaign management (demo only). */
+/** /admin/advertisements — platform ad campaign management. */
 export function Advertisements() {
   useDocumentTitle('Advertisements')
 
@@ -173,10 +172,10 @@ export function Advertisements() {
     }
     if (editing) {
       updateAdvertisement(editing.id, payload)
-      pushToast(`Campaign ${editing.id} updated (demo).`)
+      pushToast(`Campaign ${editing.id} updated.`)
     } else {
       createAdvertisement({ ...payload, status: 'ACTIVE' })
-      pushToast(`Campaign for “${payload.businessName}” created (demo).`)
+      pushToast(`Campaign for “${payload.businessName}” created.`)
     }
     closeForm()
   }
@@ -185,14 +184,14 @@ export function Advertisements() {
     if (!toggling) return
     const next = toggling.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
     setAdvertisementStatus(toggling.id, next)
-    pushToast(`Campaign ${toggling.id} ${next === 'ACTIVE' ? 'activated' : 'paused'} (demo).`, next === 'ACTIVE' ? 'success' : 'error')
+    pushToast(`Campaign ${toggling.id} ${next === 'ACTIVE' ? 'activated' : 'paused'}.`, next === 'ACTIVE' ? 'success' : 'error')
     setToggling(null)
   }
 
   const confirmDelete = () => {
     if (!deleting) return
     deleteAdvertisement(deleting.id)
-    pushToast(`Campaign ${deleting.id} deleted (demo).`, 'error')
+    pushToast(`Campaign ${deleting.id} deleted.`, 'error')
     setDeleting(null)
   }
 
@@ -330,8 +329,6 @@ export function Advertisements() {
         }
       />
 
-      <DemoBanner message="all campaigns below are illustrative demo records — no ad network, tracking service or real advertiser is connected." />
-
       <DataTable
         columns={columns}
         rows={filtered}
@@ -373,7 +370,7 @@ export function Advertisements() {
       <Modal
         open={creating || editing !== null}
         title={editing ? `Edit ${editing.id}` : 'Create advertisement'}
-        subtitle="DEMO MODE — images are previewed locally and never uploaded."
+        subtitle="Configure ad creative, destination link, category and placement."
         onClose={closeForm}
         size="lg"
         footer={
@@ -401,7 +398,7 @@ export function Advertisements() {
               <label htmlFor="ad-business" className="form-label">
                 Business name<span className="ml-1 text-danger">*</span>
               </label>
-              <input id="ad-business" className="form-input" placeholder="e.g. Annapurna Tiffin (demo)" {...field('businessName')} />
+              <input id="ad-business" className="form-input" placeholder="e.g. Annapurna Tiffin Services" {...field('businessName')} />
               {errors.businessName && <span className="form-error" role="alert">{errors.businessName}</span>}
             </div>
             <div>
@@ -439,7 +436,7 @@ export function Advertisements() {
               <label htmlFor="ad-url" className="form-label">
                 Destination URL<span className="ml-1 text-danger">*</span>
               </label>
-              <input id="ad-url" className="form-input" placeholder="https://demo.example.com/ad" {...field('destinationUrl')} />
+              <input id="ad-url" className="form-input" placeholder="https://example.com" {...field('destinationUrl')} />
               {errors.destinationUrl && <span className="form-error" role="alert">{errors.destinationUrl}</span>}
             </div>
             <div>
@@ -522,7 +519,7 @@ export function Advertisements() {
                   Choose image
                 </button>
                 <span className="mt-1.5 block text-[11px] text-ink-mute">
-                  Local preview only — nothing is uploaded (demo).
+                  Choose a JPG, PNG or WebP image (max 5MB).
                 </span>
               </div>
               <input
@@ -547,7 +544,7 @@ export function Advertisements() {
             {toggling?.status === 'ACTIVE' ? (
               <>
                 Deactivate campaign <strong className="font-semibold text-ink">{toggling?.id}</strong> (
-                {toggling?.businessName})? It stops showing in this demo.
+                {toggling?.businessName})?
               </>
             ) : (
               <>
@@ -570,7 +567,7 @@ export function Advertisements() {
           <>
             Permanently delete campaign{' '}
             <strong className="font-semibold text-ink">{deleting?.id}</strong> (
-            {deleting?.businessName}) from this demo session?
+            {deleting?.businessName})?
           </>
         }
         confirmLabel="Delete campaign"
@@ -582,7 +579,7 @@ export function Advertisements() {
       {advertisements.length === 0 && (
         <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
           <Megaphone className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-          No ad campaigns exist in this session yet.
+          No ad campaigns configured yet.
         </p>
       )}
     </>
