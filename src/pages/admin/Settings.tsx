@@ -168,8 +168,13 @@ export function AdminSettings() {
   }
 
   const confirmReset = () => {
-    resetSettings()
-    setDraft({ ...settings, ...JSON.parse(JSON.stringify(settings)) })
+    const defaults = resetSettings()
+    setDraft({
+      ...defaults,
+      brandColors: { ...defaults.brandColors },
+      notify: { ...defaults.notify },
+    })
+    setErrors({})
     setResetOpen(false)
     pushToast('Demo settings restored to defaults.', 'info')
   }

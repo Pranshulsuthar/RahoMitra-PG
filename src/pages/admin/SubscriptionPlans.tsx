@@ -346,6 +346,93 @@ export function SubscriptionPlans() {
         })}
       </div>
 
+      {/* ------------------------------------------------ management table */}
+      <section className="mt-8">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-base sm:text-lg">
+            <Layers className="h-5 w-5 text-gold-dark" aria-hidden />
+            Plan management table
+          </h2>
+          <span className="rounded-full bg-ivory px-3 py-1 text-[11px] font-bold text-ink-soft">
+            {plans.length} plans · demo
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[46rem] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-line bg-ivory/60">
+                  {['Plan ID', 'Plan Name', 'Monthly', 'Yearly', 'Billing', 'Property Limit', 'Subscribers', 'Status', 'Actions'].map(
+                    (head) => (
+                      <th
+                        key={head}
+                        scope="col"
+                        className="whitespace-nowrap px-5 py-3.5 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft"
+                      >
+                        {head}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {plans.map((plan) => (
+                  <tr
+                    key={plan.id}
+                    className="border-b border-line/70 transition-colors last:border-0 hover:bg-ivory/40"
+                  >
+                    <td className="whitespace-nowrap px-5 py-4 font-mono text-xs text-ink-soft">{plan.id}</td>
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <span className="block font-semibold text-ink">{plan.name}</span>
+                      {plan.custom && (
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-forest">Custom</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 font-semibold tabular-nums text-forest">
+                      {formatINR(plan.priceMonthly)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 tabular-nums text-ink-soft">
+                      {formatINR(plan.priceYearly)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-[12.5px] text-ink-soft">{plan.billing}</td>
+                    <td className="whitespace-nowrap px-5 py-4 tabular-nums text-ink-soft">
+                      {plan.propertyLimit} {plan.propertyLimit === 1 ? 'PG' : 'PGs'}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 tabular-nums text-ink-soft">
+                      {planSubscriberCount(plan.id)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <StatusBadge status={plan.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(plan)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-forest/25 bg-white px-3 py-1.5 text-xs font-bold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory"
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSubscribers(plan)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-forest/25 bg-white px-3 py-1.5 text-xs font-bold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory"
+                        >
+                          <Users className="h-3.5 w-3.5" aria-hidden />
+                          Subscribers
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* --------------------------------------------------------- edit/create */}
       <Modal
         open={liveEditing !== null || creating}

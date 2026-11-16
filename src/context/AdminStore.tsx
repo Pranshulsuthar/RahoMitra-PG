@@ -119,7 +119,7 @@ interface AdminStoreValue {
 
   /* Section 08 — settings */
   saveSettings: (patch: Partial<PlatformSettings>) => void
-  resetSettings: () => void
+  resetSettings: () => PlatformSettings
 
   /* Section 08 — platform support */
   assignPlatformTicket: (id: string, staff: string | null) => void
@@ -661,12 +661,18 @@ export function AdminStoreProvider({ children }: { children: ReactNode }) {
   )
 
   const resetSettings = useCallback(() => {
-    setSettings({ ...PLATFORM_SETTINGS })
+    const defaults: PlatformSettings = {
+      ...PLATFORM_SETTINGS,
+      brandColors: { ...PLATFORM_SETTINGS.brandColors },
+      notify: { ...PLATFORM_SETTINGS.notify },
+    }
+    setSettings(defaults)
     logActivity('Platform settings reset to demo defaults', 'platform', {
       action: 'Settings reset',
       entity: 'admin/settings',
       description: 'All settings restored to the original demo defaults.',
     })
+    return defaults
   }, [logActivity])
 
   /* --------------------------------------------- Section 08 — platform support */
