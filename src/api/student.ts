@@ -33,10 +33,14 @@ export interface StudentAccommodation {
       phone: string
       email: string
     }
+    ownerName?: string
+    contactPhone?: string
+    contactEmail?: string
   }
   room: {
     id: string
     number: string
+    roomNumber?: string
     floor: number
     type: string
     rent: number
@@ -44,11 +48,13 @@ export interface StudentAccommodation {
   bed: {
     id: string
     label: string
+    bedNumber?: string
     status: string
   }
   membership: string
   admissionDate: string
   roommates: Array<{
+    id?: string
     name: string
     bedLabel: string
   }>
@@ -69,5 +75,23 @@ export async function fetchOwnAdmissionRequests(): Promise<StudentAdmissionReque
 
 export async function fetchStudentAccommodation(): Promise<StudentAccommodation | null> {
   const res = await apiClient.get<{ data: StudentAccommodation | null }>('/student/accommodation')
-  return res.data
+  if (!res.data) return null
+  const d = res.data
+  return {
+    ...d,
+    property: {
+      ...d.property,
+      ownerName: d.property.ownerName || d.property.owner?.name,
+      contactPhone: d.property.contactPhone || d.property.owner?.phone,
+      contactEmail: d.property.contactEmail || d.property.owner?.email,
+    },
+    room: {
+      ...d.room,
+      roomNumber: d.room.roomNumber || d.room.number,
+    },
+    bed: {
+      ...d.bed,
+      bedNumber: d.bed.bedNumber || d.bed.label,
+    },
+  }
 }

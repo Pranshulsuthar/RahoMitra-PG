@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { MembershipStatus, StudentRecord } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -12,7 +11,7 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 
-/** /admin/students — student account directory (fictional demo records). */
+/** /admin/students — student account directory. */
 export function StudentManagement() {
   useDocumentTitle('Student Management')
 
@@ -50,8 +49,8 @@ export function StudentManagement() {
     setStudentMembership(pending.student.id, next)
     pushToast(
       next === 'ACTIVE'
-        ? `Membership of “${pending.student.name}” activated (demo).`
-        : `Membership of “${pending.student.name}” deactivated (demo).`,
+        ? `Membership of “${pending.student.name}” activated.`
+        : `Membership of “${pending.student.name}” deactivated.`,
       next === 'ACTIVE' ? 'success' : 'error',
     )
     setPending(null)
@@ -151,8 +150,6 @@ export function StudentManagement() {
           </span>
         }
       />
-
-      <DemoBanner message="student records are fictional samples — emails use the non-routable @rahomitra.demo domain." />
 
       <DataTable
         columns={columns}
@@ -278,14 +275,10 @@ export function StudentManagement() {
                 </div>
               ) : (
                 <p className="text-sm text-ink-mute">
-                  This student has not been assigned to a PG yet (demo).
+                  This student has not been assigned to a PG yet.
                 </p>
               )}
             </div>
-
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              Fictional demo student — membership changes are stored in local UI state only.
-            </p>
           </div>
         )}
       </Modal>
@@ -302,13 +295,13 @@ export function StudentManagement() {
             {pending?.action === 'ACTIVATE' ? (
               <>
                 Activate the membership of{' '}
-                <strong className="font-semibold text-ink">{pending?.student.name}</strong> (demo)?
+                <strong className="font-semibold text-ink">{pending?.student.name}</strong>?
               </>
             ) : (
               <>
                 Deactivate the membership of{' '}
                 <strong className="font-semibold text-ink">{pending?.student.name}</strong>? Their
-                profile will show as inactive in this demo.
+                profile will show as inactive.
               </>
             )}
           </>

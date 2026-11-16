@@ -470,12 +470,3 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-line bg-white px-3.5 py-2.5">
-      <dt className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-mute">{label}</dt>
-      <dd className="mt-1 text-[13px] font-semibold text-ink">{value}</dd>
-    </div>
-  )
-}

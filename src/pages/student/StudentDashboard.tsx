@@ -7,7 +7,6 @@ import {
   CalendarDays,
   ChevronRight,
   Clock,
-  DoorOpen,
   GraduationCap,
   KeyRound,
   Megaphone,

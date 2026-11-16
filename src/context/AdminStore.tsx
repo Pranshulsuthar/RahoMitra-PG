@@ -170,13 +170,41 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   currency: 'INR',
   country: 'India',
   timezone: 'Asia/Kolkata',
+  logoPreview: '/RahoMitra_logo.png',
+  faviconPreview: '/RahoMitra_logo.png',
+  brandColors: {
+    forest: '#173D32',
+    ivory: '#F5F1E7',
+    gold: '#C49A52',
+    dark: '#252A27',
+  },
+  websiteTitle: 'RahoMitra — Find your perfect PG',
+  footerDescription:
+    'RahoMitra helps students discover PG accommodation and helps owners manage their properties.',
   trialDurationDays: 14,
   gracePeriodDays: 7,
   featuredPrice: 299,
   premiumFeaturedPrice: 499,
   adPriceBase: 999,
+  notify: {
+    newOwnerApplication: true,
+    newPgApproval: true,
+    newStudentRegistration: false,
+    newComplaint: true,
+    subscriptionExpiry: true,
+    featuredRequest: true,
+  },
   maintenanceMode: false,
+  maintenanceMessage: 'Platform is currently undergoing scheduled maintenance.',
 }
+
+const PLATFORM_SETTINGS = DEFAULT_PLATFORM_SETTINGS
+
+const SUPPORT_STAFF = [
+  'Anjali Verma',
+  'Rohit Malhotra',
+  'Kiran Joshi',
+] as const
 
 function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00`)

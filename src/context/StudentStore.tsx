@@ -50,15 +50,6 @@ interface StudentStoreValue {
 
 const StudentStoreContext = createContext<StudentStoreValue | null>(null)
 
-const DEFAULT_STUDENT_PROFILE: StudentProfile = {
-  name: '',
-  email: '',
-  mobile: '',
-  college: '',
-  city: '',
-  emergencyContact: '',
-}
-
 export function StudentStoreProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [profile, setProfile] = useState<StudentProfile>(() => ({

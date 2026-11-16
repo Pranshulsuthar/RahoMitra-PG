@@ -582,9 +582,6 @@ export function OwnerAnnouncements() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[11px] text-muted">
-              Read state is simulated locally — no real notification was delivered (demo).
-            </p>
           </div>
         )}
       </Modal>

@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { BillingCycle, PlanRecord } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
@@ -118,11 +117,11 @@ export function SubscriptionPlans() {
     }
     if (editing) {
       updatePlan(editing.id, payload)
-      pushToast(`Plan “${payload.name}” updated (demo).`)
+      pushToast(`Plan “${payload.name}” updated.`)
       closeForm()
     } else {
       createPlan({ ...payload, status: 'ENABLED' })
-      pushToast(`Plan “${payload.name}” created (demo).`)
+      pushToast(`Plan “${payload.name}” created.`)
       closeForm()
     }
   }
@@ -133,8 +132,8 @@ export function SubscriptionPlans() {
     updatePlan(toggling.id, { status: nextStatus })
     pushToast(
       nextStatus === 'ENABLED'
-        ? `Plan “${toggling.name}” enabled (demo).`
-        : `Plan “${toggling.name}” disabled (demo).`,
+        ? `Plan “${toggling.name}” enabled.`
+        : `Plan “${toggling.name}” disabled.`,
       nextStatus === 'ENABLED' ? 'success' : 'error',
     )
     setToggling(null)
@@ -144,7 +143,7 @@ export function SubscriptionPlans() {
     if (!deleting) return
     const result = deletePlan(deleting.id)
     if (result.ok) {
-      pushToast(`Plan “${deleting.name}” deleted (demo).`, 'error')
+      pushToast(`Plan “${deleting.name}” deleted.`, 'error')
       setDeleting(null)
       setDeleteError(null)
     } else {
@@ -159,7 +158,7 @@ export function SubscriptionPlans() {
     updatePlan(plan.id, { featureToggles })
     const label = plan.featureToggles.find((t) => t.key === key)?.label ?? 'feature'
     pushToast(
-      `“${label}” ${featureToggles.find((t) => t.key === key)?.enabled ? 'enabled' : 'disabled'} on ${plan.name} (demo).`,
+      `“${label}” ${featureToggles.find((t) => t.key === key)?.enabled ? 'enabled' : 'disabled'} on ${plan.name}.`,
       'info',
     )
   }
@@ -211,8 +210,6 @@ export function SubscriptionPlans() {
         }
       />
 
-      <DemoBanner message="plan features and prices are illustrative placeholders — they have not been finalised for launch." />
-
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan) => {
           const price = cycle === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly
@@ -255,7 +252,7 @@ export function SubscriptionPlans() {
                 <span className="pb-1 text-sm text-ink-mute">/{cycle === 'MONTHLY' ? 'mo' : 'yr'}</span>
               </div>
               <p className="mt-1 text-[11px] text-ink-mute">
-                Illustrative demo pricing · {plan.billing.toLowerCase()} billing ·{' '}
+                Standard pricing · {plan.billing.toLowerCase()} billing ·{' '}
                 <span className="font-semibold text-ink-soft">
                   up to {plan.propertyLimit} PG {plan.propertyLimit === 1 ? 'property' : 'properties'}
                 </span>
@@ -350,7 +347,7 @@ export function SubscriptionPlans() {
       <Modal
         open={liveEditing !== null || creating}
         title={liveEditing ? `Edit ${liveEditing.name}` : 'Create new plan'}
-        subtitle="Changes are stored in local demo state only."
+        subtitle="Configure plan limits, pricing, and features."
         onClose={closeForm}
         size="md"
         footer={
@@ -515,7 +512,7 @@ export function SubscriptionPlans() {
       <Modal
         open={subscribers !== null}
         title={subscribers ? `${subscribers.name} subscribers` : 'Subscribers'}
-        subtitle="Demo subscription records attached to this plan."
+        subtitle="Active subscription records attached to this plan."
         onClose={() => setSubscribers(null)}
         size="md"
         footer={
@@ -531,7 +528,7 @@ export function SubscriptionPlans() {
         {subscriberRows.length === 0 ? (
           <EmptyState
             title="No subscribers yet"
-            description="No demo subscription currently uses this plan."
+            description="No subscription currently uses this plan."
             icon={<Users className="h-6 w-6" aria-hidden />}
           />
         ) : (
@@ -565,12 +562,12 @@ export function SubscriptionPlans() {
             {toggling?.status === 'ENABLED' ? (
               <>
                 Disabling <strong className="font-semibold text-ink">{toggling?.name}</strong> hides it
-                from new sign-ups in this demo. Existing demo subscriptions are unaffected.
+                from new sign-ups. Existing subscriptions are unaffected.
               </>
             ) : (
               <>
                 Enabling <strong className="font-semibold text-ink">{toggling?.name}</strong> makes it
-                available for new sign-ups in this demo.
+                available for new sign-ups.
               </>
             )}
           </>
@@ -591,8 +588,8 @@ export function SubscriptionPlans() {
             ) : (
               <>
                 Permanently remove{' '}
-                <strong className="font-semibold text-ink">{deleting?.name}</strong> from this demo
-                session? Plans with active subscriptions cannot be deleted.
+                <strong className="font-semibold text-ink">{deleting?.name}</strong>? Plans with active
+                subscriptions cannot be deleted.
               </>
             )}
           </>

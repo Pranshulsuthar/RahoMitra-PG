@@ -1,4 +1,4 @@
-import type { AdminPg, OwnerApplication, OwnerRecord, PaymentRecord, PlanRecord, SubscriptionRecord } from '../types/admin'
+import type { OwnerApplication, PaymentRecord, PlanRecord, SubscriptionRecord } from '../types/admin'
 
 export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
 

@@ -132,6 +132,8 @@ export interface OwnerProfile {
   mobile: string
   city: string
   bio: string
+  joinedOn?: string
+  verified?: boolean
 }
 
 export interface OwnerNotification {

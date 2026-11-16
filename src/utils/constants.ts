@@ -52,6 +52,8 @@ export const CONTACT_DETAILS = {
   responseTime: 'Typical reply within 24–48 hours',
 } as const
 
+export const CONTACT_PLACEHOLDERS = CONTACT_DETAILS
+
 /** Product FAQs for students */
 export const STUDENT_FAQS = [
   {

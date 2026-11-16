@@ -17,6 +17,7 @@ export interface AuthUser {
   id: string
   email: string
   fullName: string
+  name?: string
   role: 'STUDENT' | 'OWNER' | 'ADMIN'
   status: 'ACTIVE' | 'SUSPENDED' | 'DELETED'
   mobile?: string
@@ -53,6 +54,13 @@ function normalizeRole(backendRole: string): AuthRole {
   return 'student'
 }
 
+function normalizeAuthUser(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    name: user.name || user.fullName,
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [role, setRole] = useState<AuthRole | null>(null)
@@ -73,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await apiClient.get<{ user: AuthUser }>('/auth/me')
       if (res.user) {
-        setUser(res.user)
+        setUser(normalizeAuthUser(res.user))
         setRole(normalizeRole(res.user.role))
         setStatus('authenticated')
       } else {
@@ -97,8 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         rememberMe: Boolean(rememberMe),
       })
 
+      const u = normalizeAuthUser(res.user)
       setAccessToken(res.accessToken)
-      setUser(res.user)
+      setUser(u)
       const mappedRole = normalizeRole(res.user.role)
       setRole(mappedRole)
       setStatus('authenticated')
@@ -106,11 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Notify other browser tabs
       channelRef.current?.postMessage({
         type: 'LOGIN',
-        user: res.user,
+        user: u,
         role: mappedRole,
       })
 
-      return res.user
+      return u
     },
     []
   )
@@ -170,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           )
 
           if (isMounted && meRes.user) {
-            setUser(meRes.user)
+            setUser(normalizeAuthUser(meRes.user))
             setRole(normalizeRole(meRes.user.role))
             setStatus('authenticated')
             return

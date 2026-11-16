@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { SubscriptionRecord, SubscriptionStatus } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -23,7 +22,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'EXPIRING_SOON', label: 'Expiring soon' },
 ]
 
-/** /admin/subscriptions — owner subscription lifecycle management (demo). */
+/** /admin/subscriptions — owner subscription lifecycle management. */
 export function Subscriptions() {
   useDocumentTitle('Subscriptions')
 
@@ -71,20 +70,20 @@ export function Subscriptions() {
   const savePlanChange = () => {
     if (!liveDetail || !selectedPlan) return
     changeSubscriptionPlan(liveDetail.id, selectedPlan)
-    pushToast(`Subscription for “${liveDetail.pgName}” moved to ${planName(selectedPlan)} (demo).`)
+    pushToast(`Subscription for “${liveDetail.pgName}” moved to ${planName(selectedPlan)}.`)
     setPlanModal(false)
   }
 
   const extend = (days: number) => {
     if (!liveDetail) return
     extendSubscription(liveDetail.id, days)
-    pushToast(`“${liveDetail.pgName}” subscription extended by ${days} days (demo).`)
+    pushToast(`“${liveDetail.pgName}” subscription extended by ${days} days.`)
   }
 
   const confirmCancel = () => {
     if (!cancelTarget) return
     setSubscriptionStatus(cancelTarget.id, 'CANCELLED')
-    pushToast(`Subscription for “${cancelTarget.pgName}” cancelled (demo).`, 'error')
+    pushToast(`Subscription for “${cancelTarget.pgName}” cancelled.`, 'error')
     setCancelTarget(null)
     setDetail(null)
   }
@@ -94,7 +93,7 @@ export function Subscriptions() {
     const next = !suspendTarget.suspended
     setSubscriptionSuspended(suspendTarget.id, next)
     pushToast(
-      `Subscription for “${suspendTarget.pgName}” ${next ? 'suspended' : 'reactivated'} (demo).`,
+      `Subscription for “${suspendTarget.pgName}” ${next ? 'suspended' : 'reactivated'}.`,
       next ? 'error' : 'success',
     )
     setSuspendTarget(null)
@@ -224,8 +223,6 @@ export function Subscriptions() {
         }
       />
 
-      <DemoBanner message="all subscription records, amounts and term dates are illustrative samples — changes here reflect on the owner subscription dashboard in this session." />
-
       <DataTable
         columns={columns}
         rows={filtered}
@@ -261,7 +258,7 @@ export function Subscriptions() {
       <Modal
         open={liveDetail !== null}
         title="Subscription details"
-        subtitle={liveDetail ? `${liveDetail.id} · demo record` : undefined}
+        subtitle={liveDetail ? `${liveDetail.id} · ${liveDetail.planName}` : undefined}
         onClose={() => setDetail(null)}
         size="md"
         footer={
@@ -338,7 +335,7 @@ export function Subscriptions() {
                   {liveDetail.amount === 0 ? 'Trial' : formatINR(liveDetail.amount)}
                 </p>
                 <p className="mt-1 text-[12px] text-ink-mute">
-                  {liveDetail.cycle === 'YEARLY' ? 'per year' : 'per month'} · demo record
+                  {liveDetail.cycle === 'YEARLY' ? 'per year' : 'per month'}
                 </p>
               </div>
               <div className="rounded-2xl border border-line bg-ivory/40 p-4">
@@ -347,7 +344,7 @@ export function Subscriptions() {
                   {liveDetail.startOn} →{' '}
                   <span className="font-semibold text-ink">{liveDetail.expiryOn}</span>
                 </p>
-                <p className="mt-1 text-[12px] text-ink-mute">Extend adds time to expiry (demo).</p>
+                <p className="mt-1 text-[12px] text-ink-mute">Extend adds time to expiry date.</p>
               </div>
             </div>
 
@@ -381,9 +378,8 @@ export function Subscriptions() {
               )}
             </div>
 
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              Demo record — no payment is processed and no renewal is charged when extending or
-              changing plans here.
+            <p className="rounded-2xl border border-dashed border-forest/40 bg-forest-soft px-4 py-3 text-[12px] leading-relaxed text-forest">
+              Subscription billing and tier changes take effect immediately across all owner property limits and features.
             </p>
           </div>
         )}
@@ -482,7 +478,7 @@ export function Subscriptions() {
           </ol>
         ) : (
           <p className="rounded-2xl border border-dashed border-line bg-ivory/50 px-4 py-6 text-center text-sm text-ink-mute">
-            No history events recorded for this demo subscription yet.
+            No history events recorded for this subscription yet.
           </p>
         )}
       </Modal>
@@ -494,7 +490,7 @@ export function Subscriptions() {
           <>
             Cancel the subscription for{' '}
             <strong className="font-semibold text-ink">{cancelTarget?.pgName}</strong>? The record will
-            be marked CANCELLED in this demo. This does not process any refund (demo only).
+            be marked CANCELLED.
           </>
         }
         confirmLabel="Cancel subscription"
@@ -512,13 +508,13 @@ export function Subscriptions() {
               <>
                 Reactivate the subscription for{' '}
                 <strong className="font-semibold text-ink">{suspendTarget?.pgName}</strong>? The owner
-                regains demo access immediately.
+                regains access immediately.
               </>
             ) : (
               <>
                 Suspend the subscription for{' '}
-                <strong className="font-semibold text-ink">{suspendTarget?.pgName}</strong>? This is a
-                demo flag — no data is lost and the owner dashboard keeps showing existing records.
+                <strong className="font-semibold text-ink">{suspendTarget?.pgName}</strong>? Active
+                listings will be restricted until reactivated.
               </>
             )}
           </>

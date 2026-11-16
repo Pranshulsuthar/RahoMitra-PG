@@ -299,10 +299,6 @@ export function OwnerApplications() {
               <p className="text-sm leading-relaxed text-ink-soft">{detail.note}</p>
             </div>
 
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              This is a frontend demo — approving or rejecting updates only the local UI state on
-              this screen. No email, SMS or server request is made.
-            </p>
           </div>
         )}
       </Modal>
@@ -316,14 +312,13 @@ export function OwnerApplications() {
               <>
                 Approve the application from{' '}
                 <strong className="font-semibold text-ink">{pending?.app.ownerName}</strong> for{' '}
-                <strong className="font-semibold text-ink">{pending?.app.pgName}</strong>? The owner
-                will be marked approved in this demo (no message is actually sent).
+                <strong className="font-semibold text-ink">{pending?.app.pgName}</strong>?
               </>
             ) : (
               <>
                 Reject the application from{' '}
                 <strong className="font-semibold text-ink">{pending?.app.ownerName}</strong>. A
-                rejection reason is required and will be displayed with the record (demo only).
+                rejection reason is required and will be saved with the record.
               </>
             )}
           </>
@@ -332,7 +327,7 @@ export function OwnerApplications() {
         danger={pending?.action === 'REJECT'}
         requireReason={pending?.action === 'REJECT'}
         reasonLabel={pending?.action === 'REJECT' ? 'Rejection reason' : undefined}
-        reasonPlaceholder="e.g. Incomplete KYC documents (demo reason)"
+        reasonPlaceholder="e.g. Incomplete KYC documents"
         onConfirm={confirmAction}
         onCancel={() => setPending(null)}
       />

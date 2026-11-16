@@ -40,13 +40,13 @@ export interface BillSaveResult {
   statusLabel?: BillStatus
 }
 
+const BILLING_TODAY = new Date().toISOString().slice(0, 10)
+
 const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
   upiId: '',
-  accountNumber: '',
-  ifsc: '',
-  bankName: '',
-  beneficiaryName: '',
+  accountHolder: '',
   instructions: 'Pay via UPI or direct bank transfer. The owner will record offline receipts once payment is received.',
+  qrImage: '',
 }
 
 interface BillingStoreValue {

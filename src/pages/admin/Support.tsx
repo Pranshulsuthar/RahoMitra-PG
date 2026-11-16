@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { TicketPriority, TicketStatus, SupportTicket } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -13,7 +12,7 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Modal } from '../../components/admin/Modal'
 import { EmptyState } from '../../components/common/EmptyState'
 
-/** /admin/support — platform complaint & support ticket console (demo). */
+/** /admin/support — platform complaint & support ticket console. */
 export function Support() {
   useDocumentTitle('Complaints & Support')
 
@@ -47,7 +46,7 @@ export function Support() {
   const changeStatus = (next: TicketStatus) => {
     if (!liveDetail) return
     setTicketStatus(liveDetail.id, next)
-    pushToast(`Ticket ${liveDetail.id} marked ${next.replace('_', ' ')} (demo).`, 'info')
+    pushToast(`Ticket ${liveDetail.id} marked ${next.replace('_', ' ')}.`, 'info')
   }
 
   const submitNote = (event: FormEvent) => {
@@ -59,7 +58,7 @@ export function Support() {
     addTicketNote(liveDetail!.id, note.trim())
     setNote('')
     setNoteError(null)
-    pushToast('Internal note added to the demo ticket.')
+    pushToast('Internal note added to the ticket.')
   }
 
   const columns: Array<Column<SupportTicket>> = [
@@ -136,7 +135,7 @@ export function Support() {
     <>
       <AdminPageHeader
         title="Complaints & Support"
-        description="Platform-level support tickets raised by demo owners and students. Search, prioritise, add internal notes and update statuses."
+        description="Platform-level support tickets raised by owners and students. Search, prioritise, add internal notes and update statuses."
         actions={
           <div className="flex flex-wrap gap-2">
             {(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const).map((key) => (
@@ -156,8 +155,6 @@ export function Support() {
           </div>
         }
       />
-
-      <DemoBanner message="all complaints and internal notes are fictional examples for interface demonstration." />
 
       <DataTable
         columns={columns}
@@ -265,7 +262,7 @@ export function Support() {
               {liveDetail.notes.length === 0 ? (
                 <EmptyState
                   title="No internal notes yet"
-                  description="Add the first internal note below — it stays in this demo session only."
+                  description="Add the first internal note below."
                   icon={<LifeBuoy className="h-6 w-6" aria-hidden />}
                 />
               ) : (
@@ -291,7 +288,7 @@ export function Support() {
                   rows={3}
                   maxLength={500}
                   value={note}
-                  placeholder="Notes are visible only to admins (demo)…"
+                  placeholder="Notes are visible only to admins…"
                   onChange={(event) => {
                     setNote(event.target.value)
                     setNoteError(null)
@@ -313,10 +310,6 @@ export function Support() {
                 </button>
               </form>
             </div>
-
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              Frontend demo — notes and status changes are held in memory and disappear on reload.
-            </p>
           </div>
         )}
       </Modal>

@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { AdminPg } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -23,7 +22,7 @@ const STATUS_FILTERS = [
   { value: 'SUSPENDED', label: 'Suspended' },
 ]
 
-/** /admin/pgs — full PG moderation interface (local demo state only). */
+/** /admin/pgs — full PG moderation interface. */
 export function PGManagement() {
   useDocumentTitle('PG Management')
 
@@ -53,17 +52,17 @@ export function PGManagement() {
     if (!pending) return
     const { pg, action } = pending
     if (action === 'APPROVE') {
-      setPgStatus(pg.id, 'APPROVED', 'Approved from the admin console (demo).')
-      pushToast(`“${pg.name}” approved and published (demo).`)
+      setPgStatus(pg.id, 'APPROVED', 'Approved from the admin console.')
+      pushToast(`“${pg.name}” approved and published.`)
     } else if (action === 'REJECT') {
-      setPgStatus(pg.id, 'REJECTED', reason ?? 'Rejected from the admin console (demo).')
-      pushToast(`“${pg.name}” rejected (demo).`, 'error')
+      setPgStatus(pg.id, 'REJECTED', reason ?? 'Rejected from the admin console.')
+      pushToast(`“${pg.name}” rejected.`, 'error')
     } else if (action === 'SUSPEND') {
-      setPgStatus(pg.id, 'SUSPENDED', 'Suspended from the admin console (demo).')
-      pushToast(`“${pg.name}” suspended (demo).`, 'error')
+      setPgStatus(pg.id, 'SUSPENDED', 'Suspended from the admin console.')
+      pushToast(`“${pg.name}” suspended.`, 'error')
     } else {
-      setPgStatus(pg.id, 'APPROVED', 'Reactivated from the admin console (demo).')
-      pushToast(`“${pg.name}” reactivated (demo).`)
+      setPgStatus(pg.id, 'APPROVED', 'Reactivated from the admin console.')
+      pushToast(`“${pg.name}” reactivated.`)
     }
     setPending(null)
     if (detail?.id === pg.id) setDetail(null)
@@ -183,7 +182,7 @@ export function PGManagement() {
     <>
       <AdminPageHeader
         title="PG Management"
-        description="Search, filter and moderate every registered property. Status changes are stored in local demo state only."
+        description="Search, filter and moderate every registered property."
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-ink-soft">
             <Building2 className="h-4 w-4 text-forest" aria-hidden />
@@ -191,8 +190,6 @@ export function PGManagement() {
           </span>
         }
       />
-
-      <DemoBanner message="all PG listings shown here are sample properties for interface demonstration." />
 
       <DataTable
         columns={columns}
@@ -232,7 +229,7 @@ export function PGManagement() {
       <Modal
         open={detail !== null}
         title={detail?.name ?? ''}
-        subtitle={detail ? `${detail.id} · demo listing record` : undefined}
+        subtitle={detail ? detail.id : undefined}
         onClose={() => setDetail(null)}
         size="xl"
         footer={
@@ -305,7 +302,7 @@ export function PGManagement() {
                   <img
                     key={`${src}-${i}`}
                     src={src}
-                    alt={`${detail.name} demo photo ${i + 1}`}
+                    alt={`${detail.name} photo ${i + 1}`}
                     loading="lazy"
                     className="aspect-[4/3] w-full rounded-2xl border border-line object-cover"
                   />
@@ -439,12 +436,12 @@ export function PGManagement() {
             You are about to mark{' '}
             <strong className="font-semibold text-ink">{pending?.pg.name}</strong>{' '}
             {pending?.action === 'APPROVE'
-              ? 'as APPROVED — it will appear live on the public site (demo).'
+              ? 'as APPROVED — it will appear live on the public site.'
               : pending?.action === 'REJECT'
-                ? 'as REJECTED (demo).'
+                ? 'as REJECTED.'
                 : pending?.action === 'SUSPEND'
-                  ? 'as SUSPENDED — it will be hidden from the public site (demo).'
-                  : 'as APPROVED again (demo).'}
+                  ? 'as SUSPENDED — it will be hidden from the public site.'
+                  : 'as APPROVED.'}
           </>
         }
         confirmLabel={
@@ -457,7 +454,7 @@ export function PGManagement() {
         danger={pending?.action === 'REJECT' || pending?.action === 'SUSPEND'}
         requireReason={pending?.action === 'REJECT'}
         reasonLabel={pending?.action === 'REJECT' ? 'Rejection reason' : undefined}
-        reasonPlaceholder="e.g. Address proof missing (demo reason)"
+        reasonPlaceholder="e.g. Address proof missing"
         onConfirm={confirmAction}
         onCancel={() => setPending(null)}
       />

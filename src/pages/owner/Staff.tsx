@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Mail, Phone, UserCog, Plus, Trash2, PencilLine, Building2 } from 'lucide-react'
+import { UserCog, Plus, Trash2, PencilLine, Building2 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useOwnerStore } from '../../context/OwnerStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
@@ -386,7 +386,7 @@ function StaffFormFields({
         required
         value={form.mobile}
         onChange={(v) => setForm({ ...form, mobile: v })}
-        placeholder="9876543210"
+        placeholder="e.g. 9123456789"
         error={errors.mobile}
         hint="10-digit primary mobile number."
       />

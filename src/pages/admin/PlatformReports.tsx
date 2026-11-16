@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, Building2, Download, FileText, GraduationCap, IndianRupee, Layers, Printer, Users } from 'lucide-react'
+import { Building2, Download, FileText, GraduationCap, IndianRupee, Layers, Printer, Users } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
@@ -140,7 +140,7 @@ export function PlatformReports() {
           city: pg?.city ?? '—',
           pg: s.pgName || pg?.name || '—',
           rent: s.monthlyRent ?? 0,
-          status: s.status,
+          status: s.status || s.membership || 'ACTIVE',
         }
       })
   }, [students, pgs, city])

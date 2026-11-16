@@ -5,7 +5,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { PlatformTicket, PlatformTicketCategory, PlatformTicketStatus, TicketPriority } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatCard } from '../../components/admin/StatCard'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
@@ -26,7 +25,7 @@ const CATEGORIES: PlatformTicketCategory[] = [
 
 const STATUSES: PlatformTicketStatus[] = ['OPEN', 'IN_PROGRESS', 'WAITING_USER', 'RESOLVED', 'CLOSED']
 
-/** /admin/platform-support — centralised platform support console (demo). */
+/** /admin/platform-support — centralised platform support console. */
 export function PlatformSupport() {
   useDocumentTitle('Platform Support')
 
@@ -84,7 +83,7 @@ export function PlatformSupport() {
     addPlatformTicketReply(liveDetail.id, reply.trim(), 'Admin')
     setReply('')
     setReplyError(null)
-    pushToast(`Response added to ${liveDetail.id} (demo).`)
+    pushToast(`Response added to ${liveDetail.id}.`)
   }
 
   const columns: Array<Column<PlatformTicket>> = [
@@ -173,15 +172,13 @@ export function PlatformSupport() {
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-ink-soft">
             <LifeBuoy className="h-4 w-4 text-forest" aria-hidden />
-            {counts.total} demo tickets
+            {counts.total} total tickets
           </span>
         }
       />
 
-      <DemoBanner message="all tickets, staff names and responses are fictional examples — nothing here is connected to a real helpdesk." />
-
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Total Support Tickets" value={counts.total} icon={LifeBuoy} hint="Demo records" />
+        <StatCard label="Total Support Tickets" value={counts.total} icon={LifeBuoy} hint="Total tickets" />
         <StatCard label="Open Tickets" value={counts.open} icon={LifeBuoy} tone="danger" hint="Awaiting action" />
         <StatCard label="In Progress" value={counts.inProgress} icon={LifeBuoy} tone="gold" hint="Being handled" />
         <StatCard label="Resolved Tickets" value={counts.resolved} icon={CheckCircle2} tone="forest" hint="Closed happily" />
@@ -279,7 +276,7 @@ export function PlatformSupport() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <h3 className="mb-2.5 text-sm font-bold uppercase tracking-[0.12em] text-ink-soft">
-                  Assign to demo staff
+                  Assign to staff member
                 </h3>
                 <select
                   className="form-input"
@@ -288,8 +285,8 @@ export function PlatformSupport() {
                     assignPlatformTicket(liveDetail.id, event.target.value || null)
                     pushToast(
                       event.target.value
-                        ? `${liveDetail.id} assigned to ${event.target.value} (demo).`
-                        : `${liveDetail.id} unassigned (demo).`,
+                        ? `${liveDetail.id} assigned to ${event.target.value}.`
+                        : `${liveDetail.id} unassigned.`,
                       'info',
                     )
                   }}
@@ -320,7 +317,7 @@ export function PlatformSupport() {
                       type="button"
                       onClick={() => {
                         setPlatformTicketPriority(liveDetail.id, option)
-                        pushToast(`${liveDetail.id} priority set to ${option} (demo).`, 'info')
+                        pushToast(`${liveDetail.id} priority set to ${option}.`, 'info')
                       }}
                       className={
                         liveDetail.priority === option
@@ -346,7 +343,7 @@ export function PlatformSupport() {
                     type="button"
                     onClick={() => {
                       setPlatformTicketStatus(liveDetail.id, option)
-                      pushToast(`${liveDetail.id} marked ${option.replace('_', ' ')} (demo).`, 'info')
+                      pushToast(`${liveDetail.id} marked ${option.replace('_', ' ')}.`, 'info')
                     }}
                     className={
                       liveDetail.status === option
@@ -361,7 +358,7 @@ export function PlatformSupport() {
                   type="button"
                   onClick={() => {
                     setPlatformTicketStatus(liveDetail.id, 'RESOLVED')
-                    pushToast(`${liveDetail.id} marked resolved (demo).`)
+                    pushToast(`${liveDetail.id} marked resolved.`)
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-forest px-4 py-2 text-xs font-bold uppercase tracking-wider text-ivory transition-colors hover:bg-forest-light"
                 >
@@ -378,7 +375,7 @@ export function PlatformSupport() {
               {liveDetail.replies.length === 0 ? (
                 <EmptyState
                   title="No conversation yet"
-                  description="Add the first response below — it stays in this demo session only."
+                  description="Add the first response below."
                   icon={<LifeBuoy className="h-6 w-6" aria-hidden />}
                 />
               ) : (
@@ -413,7 +410,7 @@ export function PlatformSupport() {
                   rows={3}
                   maxLength={500}
                   value={reply}
-                  placeholder="Write a demo response to the user…"
+                  placeholder="Write a response to the user…"
                   onChange={(event) => {
                     setReply(event.target.value)
                     setReplyError(null)
@@ -435,10 +432,6 @@ export function PlatformSupport() {
                 </button>
               </form>
             </div>
-
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              Frontend demo — responses and status changes are held in memory and disappear on reload.
-            </p>
           </div>
         )}
       </Modal>

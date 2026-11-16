@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { OwnerRecord, OwnerStatus } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -13,7 +12,7 @@ import { Modal } from '../../components/admin/Modal'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import { formatINR } from '../../utils/format'
 
-/** /admin/owners — PG owner account management (fictional demo records). */
+/** /admin/owners — PG owner account management. */
 export function OwnerManagement() {
   useDocumentTitle('Owner Management')
 
@@ -40,8 +39,8 @@ export function OwnerManagement() {
     setOwnerStatus(pending.owner.id, pending.action === 'SUSPEND' ? 'SUSPENDED' : 'ACTIVE')
     pushToast(
       pending.action === 'SUSPEND'
-        ? `Owner “${pending.owner.name}” suspended (demo).`
-        : `Owner “${pending.owner.name}” reactivated (demo).`,
+        ? `Owner “${pending.owner.name}” suspended.`
+        : `Owner “${pending.owner.name}” reactivated.`,
       pending.action === 'SUSPEND' ? 'error' : 'success',
     )
     setPending(null)
@@ -139,7 +138,7 @@ export function OwnerManagement() {
     <>
       <AdminPageHeader
         title="Owner Management"
-        description="Search owners, inspect their properties and subscription status, or suspend / reactivate accounts in local demo state."
+        description="Search owners, inspect their properties and subscription status, or suspend / reactivate accounts."
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-ink-soft">
             <Building2 className="h-4 w-4 text-forest" aria-hidden />
@@ -148,15 +147,13 @@ export function OwnerManagement() {
         }
       />
 
-      <DemoBanner message="owner names and emails are fictional demo records — no real personal details exist here." />
-
       <DataTable
         columns={columns}
         rows={filtered}
         rowKey={(o) => o.id}
         pageSize={8}
         emptyTitle="No owners match"
-        emptyDescription="Adjust the search or status filter to see more demo records."
+        emptyDescription="Adjust the search or status filter to see more records."
         toolbar={
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <SearchInput value={search} onChange={setSearch} placeholder="Search owner by name or email…" />
@@ -247,7 +244,7 @@ export function OwnerManagement() {
                   Subscription
                 </h3>
                 {detailSubs.length === 0 ? (
-                  <p className="text-sm text-ink-mute">No subscription records (demo).</p>
+                  <p className="text-sm text-ink-mute">No subscription records.</p>
                 ) : (
                   <ul className="space-y-2.5 text-sm text-ink-soft">
                     {detailSubs.map((sub) => (
@@ -269,7 +266,7 @@ export function OwnerManagement() {
                 Associated PG properties ({detailPgs.length})
               </h3>
               {detailPgs.length === 0 ? (
-                <p className="text-sm text-ink-mute">No linked PG records (demo).</p>
+                <p className="text-sm text-ink-mute">No linked PG records.</p>
               ) : (
                 <ul className="space-y-2.5">
                   {detailPgs.map((pg) => (
@@ -297,10 +294,6 @@ export function OwnerManagement() {
                 </ul>
               )}
             </div>
-
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              Demo record — no real phone numbers or personal contact details are stored for owners.
-            </p>
           </div>
         )}
       </Modal>
@@ -313,14 +306,13 @@ export function OwnerManagement() {
             {pending?.action === 'SUSPEND' ? (
               <>
                 Suspending <strong className="font-semibold text-ink">{pending?.owner.name}</strong>{' '}
-                will flag their account as inactive in this demo. They would normally lose access to
-                the owner dashboard (no real session exists).
+                will flag their account as inactive and suspend access to the owner dashboard.
               </>
             ) : (
               <>
                 Reactivating{' '}
                 <strong className="font-semibold text-ink">{pending?.owner.name}</strong> restores
-                their account to ACTIVE in this demo.
+                their account to ACTIVE status.
               </>
             )}
           </>

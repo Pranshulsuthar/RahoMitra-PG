@@ -4,7 +4,6 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
 import type { PaymentRecord, PaymentStatus } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { DataTable } from '../../components/admin/DataTable'
 import type { Column } from '../../components/admin/DataTable'
 import { FilterSelect, SearchInput } from '../../components/admin/Filters'
@@ -12,7 +11,7 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Modal } from '../../components/admin/Modal'
 import { formatINR } from '../../utils/format'
 
-/** /admin/payments — RahoMitra SaaS subscription payments only (demo). */
+/** /admin/payments — RahoMitra SaaS subscription payment records. */
 export function PaymentRecords() {
   useDocumentTitle('Payment Records')
 
@@ -124,12 +123,10 @@ export function PaymentRecords() {
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-ink-soft">
             <Wallet className="h-4 w-4 text-forest" aria-hidden />
-            Successful total: {formatINR(totalSuccess)} · demo
+            Successful total: {formatINR(totalSuccess)}
           </span>
         }
       />
-
-      <DemoBanner message="transaction references and amounts are fictional — no payment gateway is connected and no real money moved." />
 
       <DataTable
         columns={columns}
@@ -175,7 +172,7 @@ export function PaymentRecords() {
       <Modal
         open={detail !== null}
         title="Transaction details"
-        subtitle={detail ? `${detail.id} · demo reference` : undefined}
+        subtitle={detail ? detail.id : undefined}
         onClose={() => setDetail(null)}
         size="md"
         footer={
@@ -196,7 +193,7 @@ export function PaymentRecords() {
               </span>
               <div>
                 <p className="font-mono text-sm font-bold text-ink">{detail.id}</p>
-                <p className="text-xs text-ink-mute">Illustrative demo transaction</p>
+                <p className="text-xs text-ink-mute">Subscription payment record</p>
               </div>
               <span className="ml-auto">
                 <StatusBadge status={detail.status} />
@@ -220,11 +217,6 @@ export function PaymentRecords() {
                 ))}
               </dl>
             </div>
-
-            <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-              This reference exists only in the demo dataset. No Razorpay or payment gateway is
-              integrated in this build.
-            </p>
           </div>
         )}
       </Modal>

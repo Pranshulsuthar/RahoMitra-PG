@@ -15,7 +15,6 @@ import {
   Star,
   UserRound,
   Users,
-  Wrench,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAuth } from '../../context/AuthContext'
@@ -556,7 +555,11 @@ export function OwnerDashboard() {
             title="No properties in scope"
             description="Switch the property selector in the topbar back to All Properties or add a new property to get started."
             icon={<PencilLine className="h-6 w-6" aria-hidden />}
-            action={{ label: 'Add Property', to: '/owner/properties?add=1' }}
+            action={
+              <Link to="/owner/properties?add=1" className="btn-primary">
+                Add Property
+              </Link>
+            }
           />
         </div>
       )}

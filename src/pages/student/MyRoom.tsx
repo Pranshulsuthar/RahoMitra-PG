@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BedDouble, DoorOpen, Info, Layers, Lock, Ruler, Users, Building2, KeyRound } from 'lucide-react'
+import { BedDouble, DoorOpen, Lock, Ruler, Users, KeyRound } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { fetchStudentAccommodation, type StudentAccommodation } from '../../api/student'
 import { ROOM_FACILITIES } from '../../utils/constants'
@@ -7,7 +7,6 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { JoinPGModal } from '../../components/student/JoinPGModal'
-import { cn } from '../../utils/cn'
 
 const TYPE_LABEL: Record<string, string> = {
   SINGLE: 'Single Sharing',

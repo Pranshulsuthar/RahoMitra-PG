@@ -12,7 +12,6 @@ import {
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { BarChart, DonutChart, LineChart } from '../../components/admin/Charts'
 import { StatCard } from '../../components/admin/StatCard'
-import { EmptyState } from '../../components/common/EmptyState'
 import { formatINR } from '../../utils/format'
 
 function getDefaultFrom(): string {

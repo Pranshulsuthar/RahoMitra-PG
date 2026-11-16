@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
-import { Sparkles } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
-/** Prominent marker used on every fictional listing / price. */
 export function DemoBadge(_props: { className?: string; compact?: boolean }) {
   return null
 }

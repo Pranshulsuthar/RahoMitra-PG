@@ -44,7 +44,7 @@ export function FeaturedListings() {
   const [rejectTarget, setRejectTarget] = useState<FeaturedRequest | null>(null)
   const [duration, setDuration] = useState(1)
 
-  /* ---- simulate-owner-request form */
+  /* ---- featured-owner-request form */
   const [form, setForm] = useState({ pgId: '', tier: 'FEATURED' as FeaturedTier })
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -291,7 +291,7 @@ export function FeaturedListings() {
         }
       />
 
-      {/* -------------------------------------------- simulate owner request */}
+      {/* -------------------------------------------- add featured request */}
       <Modal
         open={requestOpen}
         title="Add featured request"

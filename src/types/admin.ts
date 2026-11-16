@@ -48,6 +48,7 @@ export interface FeaturedRequest {
   pgId: string
   pgName: string
   ownerName: string
+  ownerEmail?: string
   tier: FeaturedTier
   /** Proposed demo price in ₹ (299 / 499). */
   amount: number
@@ -219,6 +220,9 @@ export interface StudentRecord {
   city: string
   membership: MembershipStatus
   registeredOn: string
+  joinedOn?: string
+  monthlyRent?: number
+  status?: string
 }
 
 export interface PlanRecord {
@@ -243,7 +247,9 @@ export interface SubscriptionRecord {
   id: string
   pgName: string
   ownerName: string
+  ownerEmail?: string
   planId: string
+  planName?: string
   cycle: BillingCycle
   startOn: string
   expiryOn: string
@@ -259,6 +265,8 @@ export interface SubscriptionRecord {
 export interface PaymentRecord {
   id: string
   ownerName: string
+  ownerEmail?: string
+  subscriptionId?: string
   pgName: string
   planId: string
   amount: number

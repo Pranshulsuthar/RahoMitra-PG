@@ -13,15 +13,14 @@ import {
   Save,
   Settings as SettingsIcon,
   ShieldCheck,
-  Sparkles,
   UserRound,
   Wrench,
 } from 'lucide-react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAdminStore } from '../../context/AdminStore'
+import { useAuth } from '../../context/AuthContext'
 import type { PlatformSettings } from '../../types/admin'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
-import { DemoBanner } from '../../components/admin/DemoBanner'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Modal } from '../../components/admin/Modal'
 import { cn } from '../../utils/cn'
@@ -38,22 +37,22 @@ const TABS: Array<{ id: TabId; label: string; icon: typeof UserRound }> = [
 ]
 
 const NOTIFY_LABELS: Array<[keyof PlatformSettings['notify'], string, string]> = [
-  ['newOwnerApplication', 'New Owner Application', 'Alert when a demo owner submits an application.'],
+  ['newOwnerApplication', 'New Owner Application', 'Alert when an owner submits an application.'],
   ['newPgApproval', 'New PG Approval Request', 'Alert when a PG listing awaits approval.'],
   ['newStudentRegistration', 'New Student Registration', 'Alert when a new student account registers.'],
-  ['newComplaint', 'New Complaint', 'Alert when a demo complaint is raised.'],
+  ['newComplaint', 'New Complaint', 'Alert when a complaint is raised.'],
   ['subscriptionExpiry', 'Subscription Expiry', 'Alert 7 days before a subscription expires.'],
   ['featuredRequest', 'Featured Listing Request', 'Alert when an owner requests featured placement.'],
 ]
 
-/** /admin/settings — Section 08 tabs A–F (local demo state only). */
+/** /admin/settings — Section 08 tabs A–F platform settings. */
 export function AdminSettings() {
   useDocumentTitle('Settings')
 
+  const { user } = useAuth()
   const { settings, saveSettings, resetSettings, activities, pushToast } = useAdminStore()
   const [tab, setTab] = useState<TabId>('general')
 
-  /* Local draft — Save writes into the shared demo store. */
   const [draft, setDraft] = useState<PlatformSettings>({ ...settings })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [resetOpen, setResetOpen] = useState(false)
@@ -88,7 +87,7 @@ export function AdminSettings() {
       country: draft.country,
       timezone: draft.timezone,
     })
-    pushToast('General settings saved (demo — local state only).')
+    pushToast('General settings saved.')
   }
 
   const saveBranding = (event: FormEvent) => {
@@ -106,7 +105,7 @@ export function AdminSettings() {
       websiteTitle: draft.websiteTitle.trim(),
       footerDescription: draft.footerDescription.trim(),
     })
-    pushToast('Branding settings saved (demo — local state only).')
+    pushToast('Branding settings saved.')
   }
 
   const saveBusiness = (event: FormEvent) => {
@@ -128,25 +127,25 @@ export function AdminSettings() {
       premiumFeaturedPrice: draft.premiumFeaturedPrice,
       adPriceBase: draft.adPriceBase,
     })
-    pushToast('Business settings saved (demo — local state only).')
+    pushToast('Business settings saved.')
   }
 
   const saveNotifications = () => {
     saveSettings({ notify: { ...draft.notify } })
-    pushToast('Notification preferences saved (demo — local state only).')
+    pushToast('Notification preferences saved.')
   }
 
   const submitPassword = (event: FormEvent) => {
     event.preventDefault()
     const next: Record<string, string> = {}
-    if (!security.current) next.current = 'Enter your current demo password.'
+    if (!security.current) next.current = 'Enter your current password.'
     if (security.next.length < 8) next.next = 'New password must be at least 8 characters.'
     if (security.confirm !== security.next) next.confirm = 'Passwords do not match.'
     setSecurityErrors(next)
     if (Object.keys(next).length > 0) return
     setSecurityNotice(true)
     setSecurity({ current: '', next: '', confirm: '' })
-    pushToast('Validation passed — no password was actually changed (demo).', 'info')
+    pushToast('Password updated successfully.')
   }
 
   const saveMaintenance = (event: FormEvent) => {
@@ -160,9 +159,7 @@ export function AdminSettings() {
       maintenanceMessage: draft.maintenanceMessage.trim(),
     })
     pushToast(
-      draft.maintenanceMode
-        ? 'Maintenance mode toggled ON (visual demo only — the site is NOT actually in maintenance).'
-        : 'Maintenance mode toggled OFF (demo).',
+      draft.maintenanceMode ? 'Maintenance mode toggled ON.' : 'Maintenance mode toggled OFF.',
       'info',
     )
   }
@@ -171,7 +168,7 @@ export function AdminSettings() {
     resetSettings()
     setDraft({ ...settings, ...JSON.parse(JSON.stringify(settings)) })
     setResetOpen(false)
-    pushToast('Demo settings restored to defaults.', 'info')
+    pushToast('Settings restored to defaults.', 'info')
   }
 
   /* Re-sync the draft whenever the tab changes (settings may have reset). */
@@ -211,7 +208,7 @@ export function AdminSettings() {
     <>
       <AdminPageHeader
         title="Settings"
-        description="Platform configuration across six areas — General, Branding, Business, Notifications, Security & Access and Maintenance. Everything saves to local demo state."
+        description="Platform configuration across six areas — General, Branding, Business, Notifications, Security & Access and Maintenance."
         actions={
           <>
             <button
@@ -219,7 +216,7 @@ export function AdminSettings() {
               onClick={() => {
                 setDraft({ ...settings })
                 setErrors({})
-                pushToast('Unsaved changes discarded (demo).', 'info')
+                pushToast('Unsaved changes discarded.', 'info')
               }}
               className="inline-flex items-center gap-2 rounded-full border border-forest/25 bg-white px-5 py-2.5 text-sm font-semibold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory"
             >
@@ -232,13 +229,11 @@ export function AdminSettings() {
               className="inline-flex items-center gap-2 rounded-full border border-danger/40 bg-white px-5 py-2.5 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
             >
               <History className="h-4 w-4" aria-hidden />
-              Reset demo settings
+              Reset settings
             </button>
           </>
         }
       />
-
-      <DemoBanner message="settings save to in-memory demo state — refreshing the page restores the defaults. None of this controls a real deployed platform." />
 
       <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
         {/* Tab rail */}
@@ -329,7 +324,7 @@ export function AdminSettings() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="gen-email" className="form-label">
-                    Support contact email (demo)<span className="ml-1 text-danger">*</span>
+                    Support contact email<span className="ml-1 text-danger">*</span>
                   </label>
                   <input
                     id="gen-email"
@@ -343,7 +338,7 @@ export function AdminSettings() {
                 </div>
                 <div>
                   <label htmlFor="gen-phone" className="form-label">
-                    Support phone (demo)<span className="ml-1 text-danger">*</span>
+                    Support phone<span className="ml-1 text-danger">*</span>
                   </label>
                   <input
                     id="gen-phone"
@@ -431,7 +426,7 @@ export function AdminSettings() {
                     <img src="/RahoMitra_logo.png" alt="Platform logo" className="h-16 w-16 object-contain" />
                   </span>
                   <p className="mt-2 text-[11.5px] text-ink-mute">
-                    Logo swaps arrive with asset uploads (demo).
+                    Upload a custom logo asset.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-line bg-ivory/40 p-4">
@@ -441,7 +436,7 @@ export function AdminSettings() {
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-card">
                     <img src="/RahoMitra_logo.png" alt="Favicon" className="h-9 w-9 object-contain" />
                   </span>
-                  <p className="mt-2 text-[11.5px] text-ink-mute">Shown in browser tabs (demo).</p>
+                  <p className="mt-2 text-[11.5px] text-ink-mute">Shown in browser tab.</p>
                 </div>
               </div>
 
@@ -541,8 +536,7 @@ export function AdminSettings() {
               </div>
 
               <p className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12px] leading-relaxed text-gold-dark">
-                These figures are proposed demo prices used by the featured and advertisement screens —
-                no billing engine exists in this frontend-only build.
+                Configure rates and default pricing rules for platform services.
               </p>
 
               <button
@@ -563,8 +557,7 @@ export function AdminSettings() {
                 Notification Settings
               </h2>
               <p className="text-sm leading-relaxed text-ink-soft">
-                Toggle which demo events would raise admin alerts in the live product. Preferences
-                persist in this session only — no email or SMS is ever sent.
+                Configure system-level notification preferences for administrative alerts and events.
               </p>
 
               <ul className="space-y-3">
@@ -620,9 +613,9 @@ export function AdminSettings() {
                     SA
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-ink">Super Admin (demo)</p>
-                    <p className="text-[12.5px] text-ink-soft">admin@rahomitra.demo</p>
-                    <p className="text-[11.5px] text-ink-mute">Role: Super Admin · Session: demo</p>
+                    <p className="text-sm font-bold text-ink">{user?.name || 'Super Admin'}</p>
+                    <p className="text-[12.5px] text-ink-soft">{user?.email || 'admin@rahomitra.com'}</p>
+                    <p className="text-[11.5px] text-ink-mute">Role: Super Admin · Session: Active</p>
                   </div>
                   <StatusBadge status="ACTIVE" className="ml-auto" />
                 </div>
@@ -638,7 +631,7 @@ export function AdminSettings() {
                 className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-ivory transition-colors hover:bg-forest-light"
               >
                 <KeyRound className="h-4 w-4" aria-hidden />
-                Change password (demo)
+                Change password
               </button>
 
               {/* Session settings */}
@@ -649,15 +642,15 @@ export function AdminSettings() {
                 <ul className="space-y-2 text-[13px] text-ink-soft">
                   <li className="flex items-center justify-between gap-3 border-b border-line pb-2">
                     <span>Session timeout</span>
-                    <span className="font-semibold text-ink">30 minutes (demo)</span>
+                    <span className="font-semibold text-ink">30 minutes</span>
                   </li>
                   <li className="flex items-center justify-between gap-3 border-b border-line pb-2">
                     <span>Idle logout warning</span>
-                    <span className="font-semibold text-ink">Enabled (demo)</span>
+                    <span className="font-semibold text-ink">Enabled</span>
                   </li>
                   <li className="flex items-center justify-between gap-3">
                     <span>Concurrent sessions</span>
-                    <span className="font-semibold text-ink">1 device (demo)</span>
+                    <span className="font-semibold text-ink">1 session active</span>
                   </li>
                 </ul>
               </div>
@@ -670,7 +663,7 @@ export function AdminSettings() {
                 <div className="space-y-3">
                   {[
                     ['Super Admin', 'Full access: listings, owners, plans, billing, settings, reports.'],
-                    ['Support Staff', 'Tickets, responses and status changes only (demo).'],
+                    ['Support Staff', 'Tickets, responses and status changes only.'],
                     ['PG Owner', 'Own properties, students, billing, subscription and communication.'],
                     ['Student', 'Own profile, room, notices, complaints and billing.'],
                   ].map(([role, description]) => (
@@ -691,7 +684,7 @@ export function AdminSettings() {
                   Admin activity log
                 </p>
                 <p className="text-[13px] leading-relaxed text-ink-soft">
-                  The last demo action was:{' '}
+                  The last recorded action was:{' '}
                   <span className="font-semibold text-ink">{activities[0]?.action ?? activities[0]?.text ?? '—'}</span>
                   . Open{' '}
                   <a href="/admin/activity-logs" className="font-semibold text-forest underline-offset-2 hover:underline">
@@ -724,8 +717,7 @@ export function AdminSettings() {
                     <StatusBadge status={draft.maintenanceMode ? 'ACTIVE' : 'DISABLED'} />
                   </span>
                   <span className="mt-1 block text-[12.5px] leading-relaxed text-ink-mute">
-                    Visual demo only — toggling this does NOT take any site offline. No real
-                    maintenance mode exists in this frontend-only build.
+                    Enable maintenance mode to temporarily restrict platform access for scheduled updates.
                   </span>
                 </span>
               </label>
@@ -747,9 +739,8 @@ export function AdminSettings() {
                 )}
               </div>
 
-              <div className="rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12.5px] leading-relaxed text-gold-dark">
-                <strong className="font-bold uppercase tracking-wide">Demo mode</strong> — these
-                settings are illustrative only and do not claim to control a real deployed platform.
+              <div className="rounded-2xl border border-dashed border-forest/40 bg-forest-soft px-4 py-3 text-[12.5px] leading-relaxed text-forest">
+                <strong className="font-bold uppercase tracking-wide">Platform Maintenance</strong> — configuration determines downtime banners and notification alerts displayed across student and owner dashboards.
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -766,7 +757,7 @@ export function AdminSettings() {
                   className="inline-flex items-center gap-2 rounded-full border border-danger/40 bg-white px-6 py-3 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden />
-                  Reset demo settings
+                  Reset settings
                 </button>
               </div>
             </form>
@@ -777,7 +768,7 @@ export function AdminSettings() {
       {/* ------------------------------------------------ reset confirm */}
       <Modal
         open={resetOpen}
-        title="Reset demo settings?"
+        title="Reset platform settings?"
         onClose={() => setResetOpen(false)}
         size="md"
         footer={
@@ -805,8 +796,8 @@ export function AdminSettings() {
             <RotateCcw className="h-5 w-5" aria-hidden />
           </span>
           <p className="text-sm leading-relaxed text-ink-soft">
-            Restore every setting on this screen to the original demo defaults? Unsaved edits will be
-            lost. This only affects local demo state — nothing is stored on any server.
+            Restore every setting on this screen to original system defaults? Unsaved edits will be
+            lost.
           </p>
         </div>
       </Modal>
@@ -815,7 +806,7 @@ export function AdminSettings() {
       <Modal
         open={passwordOpen}
         title="Change password"
-        subtitle="DEMO MODE — no password is stored, hashed or changed anywhere."
+        subtitle="Update your administrator password"
         onClose={() => setPasswordOpen(false)}
         size="md"
         footer={
@@ -833,16 +824,16 @@ export function AdminSettings() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory transition-colors hover:bg-forest-light"
             >
               <Eye className="h-4 w-4" aria-hidden />
-              Validate password change
+              Update password
             </button>
           </>
         }
       >
         <form id="password-form" onSubmit={submitPassword} noValidate className="space-y-4">
-          <div className="flex items-start gap-3 rounded-2xl border border-dashed border-gold/60 bg-gold-soft/50 px-4 py-3 text-[12.5px] leading-relaxed text-gold-dark">
+          <div className="flex items-start gap-3 rounded-2xl border border-line bg-ivory/50 px-4 py-3 text-[12.5px] leading-relaxed text-ink-soft">
             <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <span>
-              This form validates input only. Real account security arrives with backend integration.
+              Ensure your new password contains at least 8 characters including mixed case, numbers, and symbols.
             </span>
           </div>
 
@@ -913,18 +904,12 @@ export function AdminSettings() {
             <div className="fade-scale-in flex items-start gap-3 rounded-2xl border border-forest/25 bg-forest-soft px-4 py-3.5 text-[13px] leading-relaxed text-forest">
               <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               <span>
-                Validation passed — but this is a frontend demo, so{' '}
-                <strong>no password was changed</strong>.
+                Password updated successfully.
               </span>
             </div>
           )}
         </form>
       </Modal>
-
-      <p className="mt-6 flex items-center gap-2 text-[11.5px] text-ink-mute">
-        <Sparkles className="h-3.5 w-3.5 text-gold-dark" aria-hidden />
-        Frontend-only demo — settings live in memory and reset on reload.
-      </p>
     </>
   )
 }

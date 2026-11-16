@@ -20,7 +20,7 @@ const STATUS_OPTIONS = [
   { value: 'REJECTED', label: 'Rejected' },
 ]
 
-/** /owner/admissions — codes, simulated requests and owner approvals. */
+/** /owner/admissions — codes, incoming requests and owner approvals. */
 export function Admissions() {
   useDocumentTitle('Admission Management')
 

@@ -15,7 +15,6 @@ import type { Column } from '../../components/admin/DataTable'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { StatisticCard } from '../../components/owner/StatisticCard'
 import { Modal } from '../../components/admin/Modal'
-import { EmptyState } from '../../components/common/EmptyState'
 import { Button } from '../../components/common/Button'
 import { InvoiceView } from '../../components/billing/InvoiceView'
 import type { PaymentRecord, RentBill } from '../../types/billing'
@@ -115,7 +114,7 @@ export function StudentBilling() {
       key: 'property',
       header: 'PG',
       sortValue: (b) => b.propertyId,
-      render: (b) => <span className="whitespace-nowrap">PG Accommodation</span>,
+      render: () => <span className="whitespace-nowrap">PG Accommodation</span>,
     },
     {
       key: 'total',
