@@ -83,7 +83,7 @@ export function Navbar() {
         {/* Mobile / tablet: login lives directly in the top bar */}
         <Link
           to="/auth"
-          className="inline-flex items-center gap-1.5 rounded-full border border-forest/25 px-3.5 py-2 text-[13px] font-semibold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory sm:px-4 sm:text-sm lg:hidden"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-forest/25 px-3.5 py-2 text-[13px] font-semibold text-forest transition-colors hover:border-forest hover:bg-forest hover:text-ivory sm:px-4 sm:text-sm lg:hidden"
         >
           <LogIn className="h-4 w-4" aria-hidden />
           Login

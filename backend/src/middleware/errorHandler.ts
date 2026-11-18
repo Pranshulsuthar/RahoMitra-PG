@@ -76,13 +76,26 @@ export function errorHandler(
     return;
   }
 
+  const isDatabaseUnavailable =
+    err.name === 'PrismaClientInitializationError' ||
+    err.name === 'PrismaClientKnownRequestError' &&
+      /Can't reach database server|P1001|P1002/i.test(err.message);
+
+  if (isDatabaseUnavailable) {
+    res.status(503).json({
+      error: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'RahoMitra database is unavailable. Please start PostgreSQL or configure DATABASE_URL.',
+      },
+    });
+    return;
+  }
+
   // Default fallback for unhandled 500
-  const isProd = env.NODE_ENV === 'production';
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message: isProd ? 'An unexpected internal server error occurred' : err.message,
-      ...(isProd ? {} : { details: err.stack }),
+      message: 'An unexpected internal server error occurred. Please try again shortly.',
     },
   });
 }
