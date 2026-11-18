@@ -73,7 +73,7 @@ export class AuthService {
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
 
     // 5. Store hashed OTP in database
-    await prisma.emailOtp.create({
+    const otpRecord = await prisma.emailOtp.create({
       data: {
         email: normalizedEmail,
         otpHash,
@@ -84,7 +84,15 @@ export class AuthService {
     });
 
     // 6. Send OTP via Mailer
-    await getMailer().sendOtpEmail(normalizedEmail, otp);
+    try {
+      await getMailer().sendOtpEmail(normalizedEmail, otp);
+    } catch (error) {
+      await prisma.emailOtp.delete({ where: { id: otpRecord.id } });
+      throw AppError.internal(
+        'Unable to send the verification email. Please try again shortly.',
+        'EMAIL_DELIVERY_FAILED'
+      );
+    }
 
     return { message: 'Verification code sent to your email address.' };
   }

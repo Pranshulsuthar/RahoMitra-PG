@@ -16,6 +16,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useAuth } from '../../context/AuthContext'
 import { useAdminStore } from '../../context/AdminStore'
 import { useOwnerStore } from '../../context/OwnerStore'
+import { selectOwnerSubscription } from '../../api/owner'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { StatCard } from '../../components/admin/StatCard'
@@ -38,20 +39,8 @@ export function OwnerSubscription() {
   useDocumentTitle('Subscription & Plans')
 
   const { user } = useAuth()
-  const { plans, subscriptions, payments, changeSubscriptionPlan, pushToast } = useAdminStore()
-  const { owner, properties } = useOwnerStore()
-
-  const subscription = useMemo(
-    () =>
-      subscriptions.find(
-        (s) =>
-          (user?.email && s.ownerEmail === user.email) ||
-          (owner?.email && s.ownerEmail === owner.email) ||
-          (user?.name && s.ownerName === user.name) ||
-          (owner?.name && s.ownerName === owner.name),
-      ) ?? subscriptions[0],
-    [subscriptions, user, owner],
-  )
+  const { payments, changeSubscriptionPlan, pushToast } = useAdminStore()
+  const { owner, properties, plans, subscription, refresh } = useOwnerStore()
   const currentPlan = useMemo(
     () => plans.find((p) => p.id === subscription?.planId) ?? plans[0],
     [plans, subscription],
@@ -59,6 +48,9 @@ export function OwnerSubscription() {
 
   const [selecting, setSelecting] = useState<string | null>(null)
   const [detailPlan, setDetailPlan] = useState<string | null>(null)
+  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CASH'>('UPI')
+  const [submitting, setSubmitting] = useState(false)
 
   const usedProperties = properties.length
   const allowedProperties = currentPlan?.propertyLimit ?? 0
@@ -86,12 +78,29 @@ export function OwnerSubscription() {
 
   const confirmChange = (planId: string) => {
     const plan = plans.find((p) => p.id === planId)
-    if (!plan || plan.id === currentPlan?.id) return
-    if (subscription?.id) {
+    if (!plan) return
+    if (subscription?.id && ['ACTIVE', 'TRIAL', 'EXPIRING_SOON'].includes(subscription.status)) {
       changeSubscriptionPlan(subscription.id, planId)
+      pushToast(`Plan changed to ${plan.name}.`)
+      setSelecting(null)
+      void refresh()
+      return
     }
-    pushToast(`Plan changed to ${plan.name}.`)
-    setSelecting(null)
+    setSubmitting(true)
+    selectOwnerSubscription(planId, billingCycle, paymentMethod)
+      .then(async () => {
+        await refresh()
+        pushToast(
+          paymentMethod === 'UPI'
+            ? 'Plan selected. Complete UPI payment confirmation with admin.'
+            : 'Plan selected. Cash payment is pending admin confirmation.',
+        )
+        setSelecting(null)
+      })
+      .catch((error) => {
+        pushToast(error instanceof Error ? error.message : 'Unable to select subscription', 'error')
+      })
+      .finally(() => setSubmitting(false))
   }
 
   const daysLeft = useMemo(() => {
@@ -104,12 +113,100 @@ export function OwnerSubscription() {
   if (!subscription || !currentPlan) {
     return (
       <>
-        <AdminPageHeader title="Subscription & Plans" description="Your SaaS plan, billing history and upgrades." />
-        <EmptyState
-          title="No subscription found"
-          description="No active subscription plan is linked to this account yet."
-          icon={<CreditCard className="h-6 w-6" aria-hidden />}
+        <AdminPageHeader
+          title="Choose your subscription"
+          description="Your dashboard will unlock after you select a plan and submit payment."
         />
+        <section className="mb-6 rounded-3xl border border-gold/40 bg-gradient-to-br from-gold-soft to-white p-5 sm:p-7">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-forest text-ivory">
+              <ShieldCheck className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-xl font-bold text-ink">Activate RahoMitra for your account</h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                Select an admin-approved plan below, choose UPI or cash, and wait for payment confirmation.
+              </p>
+            </div>
+          </div>
+        </section>
+        {plans.length === 0 ? (
+          <EmptyState
+            title="No plans available"
+            description="The admin has not enabled any subscription plans yet."
+            icon={<CreditCard className="h-6 w-6" aria-hidden />}
+          />
+        ) : (
+          <div className="grid gap-5 md:grid-cols-3">
+            {plans.map((plan) => (
+              <article key={plan.id} className="flex flex-col rounded-3xl border border-line bg-white p-5 shadow-card">
+                <h3 className="text-lg font-bold text-ink">{plan.name}</h3>
+                <p className="mt-1 min-h-10 text-sm text-ink-mute">{plan.tagline}</p>
+                <p className="mt-4 text-3xl font-bold text-forest">
+                  {formatINR(plan.priceMonthly)}
+                  <span className="text-sm text-ink-mute">/mo</span>
+                </p>
+                <p className="text-xs text-ink-mute">Up to {plan.propertyLimit} properties</p>
+                <ul className="mt-4 flex-1 space-y-2">
+                  {plan.features.slice(0, 5).map((feature) => (
+                    <li key={feature} className="flex gap-2 text-sm text-ink-soft">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setSelecting(plan.id)}
+                  className="mt-5 rounded-full bg-forest px-5 py-3 text-sm font-bold text-ivory hover:bg-forest-light"
+                >
+                  Select {plan.name}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+
+        <Modal
+          open={selecting !== null}
+          title="Confirm subscription"
+          subtitle="Choose billing cycle and payment method."
+          onClose={() => setSelecting(null)}
+          size="md"
+          footer={
+            <>
+              <button type="button" onClick={() => setSelecting(null)} className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold">
+                Cancel
+              </button>
+              <button type="button" disabled={submitting} onClick={() => selecting && confirmChange(selecting)} className="rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-ivory disabled:opacity-60">
+                {submitting ? 'Submitting...' : 'Submit selection'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-soft">Billing cycle</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(['MONTHLY', 'YEARLY'] as const).map((cycle) => (
+                  <button key={cycle} type="button" onClick={() => setBillingCycle(cycle)} className={cn('rounded-2xl border p-3 text-sm font-bold', billingCycle === cycle ? 'border-forest bg-forest-soft text-forest' : 'border-line text-ink-soft')}>
+                    {cycle}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-soft">Payment method</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(['UPI', 'CASH'] as const).map((method) => (
+                  <button key={method} type="button" onClick={() => setPaymentMethod(method)} className={cn('rounded-2xl border p-3 text-sm font-bold', paymentMethod === method ? 'border-forest bg-forest-soft text-forest' : 'border-line text-ink-soft')}>
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
       </>
     )
   }
@@ -126,6 +223,20 @@ export function OwnerSubscription() {
           </span>
         }
       />
+
+      {subscription.status === 'PENDING' && (
+        <section className="mb-6 rounded-3xl border border-gold/50 bg-gold-soft/60 p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-gold-dark" aria-hidden />
+            <div>
+              <h2 className="text-base font-bold text-ink">Payment confirmation pending</h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                Your plan is selected.                 The dashboard will unlock after the admin confirms your {subscription.cycle.toLowerCase()} subscription payment.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* --------------------------------------------------- current plan */}
       <div className="grid gap-5 lg:grid-cols-3">

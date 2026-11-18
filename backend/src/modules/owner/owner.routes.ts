@@ -10,6 +10,7 @@ ownerRoutes.use(requireAuth, requireActiveAccount, requireRole(Role.OWNER));
 
 // Bootstrap dashboard data
 ownerRoutes.get('/dashboard', (req, res, next) => ownerController.getDashboard(req, res, next));
+ownerRoutes.post('/subscription/select', (req, res, next) => ownerController.selectSubscription(req, res, next));
 
 // Properties
 ownerRoutes.get('/properties', (req, res, next) => ownerController.getProperties(req, res, next));

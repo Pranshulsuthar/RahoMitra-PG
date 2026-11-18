@@ -1083,7 +1083,7 @@ export class OwnerService {
    * Consolidated initial fetch for OwnerStore bootstrap
    */
   async getDashboardData(ownerId: string) {
-    const [profile, properties, rooms, students, staff, codes, requests, notifications, activities] = await Promise.all([
+    const [profile, properties, rooms, students, staff, codes, requests, notifications, activities, plans, subscription] = await Promise.all([
       this.getProfile(ownerId),
       this.getProperties(ownerId),
       this.getRooms(ownerId),
@@ -1093,6 +1093,15 @@ export class OwnerService {
       this.getAdmissionRequests(ownerId),
       this.getNotifications(ownerId),
       this.getActivities(ownerId),
+      prisma.plan.findMany({
+        where: { status: 'ENABLED' },
+        orderBy: { priceMonthly: 'asc' },
+      }),
+      prisma.subscription.findFirst({
+        where: { ownerId },
+        orderBy: { createdAt: 'desc' },
+        include: { plan: true, events: { orderBy: { createdAt: 'desc' } } },
+      }),
     ]);
 
     return {
@@ -1105,6 +1114,99 @@ export class OwnerService {
       requests,
       notifications,
       activities,
+      plans: plans.map((p) => ({
+        id: p.id,
+        name: p.name,
+        tagline: p.tagline,
+        features: p.features,
+        priceMonthly: p.priceMonthly,
+        priceYearly: p.priceYearly,
+        status: p.status,
+        propertyLimit: p.propertyLimit,
+        billing: p.billing,
+        featureToggles: p.featureToggles || [],
+        custom: p.isCustom,
+      })),
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            planId: subscription.planId,
+            planName: subscription.plan.name,
+            cycle: subscription.cycle,
+            startOn: subscription.startOn.toISOString().slice(0, 10),
+            expiryOn: subscription.expiryOn.toISOString().slice(0, 10),
+            status: subscription.status,
+            amount: subscription.amount,
+            suspended: subscription.suspended,
+            events: subscription.events.map((event) => ({
+              id: event.id,
+              text: event.text,
+              on: event.createdAt.toISOString().slice(0, 10),
+            })),
+          }
+        : null,
+    };
+  }
+
+  async selectSubscription(ownerId: string, planId: string, cycle: 'MONTHLY' | 'YEARLY', method: 'UPI' | 'CASH') {
+    const [owner, plan] = await Promise.all([
+      prisma.user.findUnique({ where: { id: ownerId } }),
+      prisma.plan.findUnique({ where: { id: planId } }),
+    ]);
+    if (!owner) throw AppError.notFound('Owner account not found');
+    if (!plan || plan.status !== 'ENABLED') throw AppError.badRequest('This subscription plan is unavailable.');
+
+    const existing = await prisma.subscription.findFirst({
+      where: { ownerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existing && ['ACTIVE', 'TRIAL', 'EXPIRING_SOON'].includes(existing.status)) {
+      throw AppError.badRequest('You already have an active subscription.');
+    }
+
+    const amount = cycle === 'YEARLY' ? plan.priceYearly : plan.priceMonthly;
+    const expiryOn = new Date();
+    expiryOn.setMonth(expiryOn.getMonth() + (cycle === 'YEARLY' ? 12 : 1));
+
+    const subscription = await prisma.$transaction(async (tx) => {
+      const created = await tx.subscription.create({
+        data: {
+          ownerId,
+          planId,
+          cycle,
+          startOn: new Date(),
+          expiryOn,
+          status: 'PENDING',
+          amount,
+          suspended: false,
+        },
+      });
+      await tx.subscriptionEvent.create({
+        data: { subscriptionId: created.id, text: `Plan selected: ${plan.name} · ${method} payment pending` },
+      });
+      await tx.platformPayment.create({
+        data: {
+          ownerId,
+          ownerName: owner.fullName,
+          pgName: 'RahoMitra Subscription',
+          planId,
+          amount,
+          status: 'PENDING',
+          method,
+        },
+      });
+      return created;
+    });
+
+    return {
+      id: subscription.id,
+      planId,
+      planName: plan.name,
+      cycle,
+      amount,
+      status: 'PENDING',
+      method,
+      expiryOn: expiryOn.toISOString().slice(0, 10),
     };
   }
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { OwnerStoreProvider } from '../../context/OwnerStore'
+import { useOwnerStore } from '../../context/OwnerStore'
 import { OwnerSidebar } from './OwnerSidebar'
 import { OwnerTopbar } from './OwnerTopbar'
 import { OwnerToastViewport } from './OwnerToastViewport'
@@ -12,8 +13,18 @@ import { OwnerToastViewport } from './OwnerToastViewport'
  */
 function OwnerShell() {
   const { pathname } = useLocation()
+  const { subscription } = useOwnerStore()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const subscriptionActive =
+    Boolean(subscription) &&
+    !subscription?.suspended &&
+    ['ACTIVE', 'TRIAL', 'EXPIRING_SOON'].includes(subscription?.status || '')
+
+  if (!subscriptionActive && pathname !== '/owner/subscription') {
+    return <Navigate to="/owner/subscription" replace />
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F6F1]">

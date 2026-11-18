@@ -52,10 +52,24 @@ export interface OwnerDashboardData {
   requests: AdmissionRequest[]
   notifications: OwnerNotification[]
   activities: OwnerActivity[]
+  plans: import('../types/admin').PlanRecord[]
+  subscription: import('../types/admin').SubscriptionRecord | null
 }
 
 export async function fetchOwnerDashboard(): Promise<OwnerDashboardData> {
   const res = await apiClient.get<{ data: OwnerDashboardData }>('/owner/dashboard')
+  return res.data
+}
+
+export async function selectOwnerSubscription(
+  planId: string,
+  cycle: 'MONTHLY' | 'YEARLY',
+  method: 'UPI' | 'CASH',
+): Promise<{ id: string; status: string; amount: number }> {
+  const res = await apiClient.post<{ data: { id: string; status: string; amount: number } }>(
+    '/owner/subscription/select',
+    { planId, cycle, method },
+  )
   return res.data
 }
 

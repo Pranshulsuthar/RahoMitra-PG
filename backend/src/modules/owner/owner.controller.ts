@@ -20,6 +20,24 @@ export class OwnerController {
     return req.user!.sub;
   }
 
+  async selectSubscription(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { planId, cycle, method } = req.body as { planId?: string; cycle?: string; method?: string };
+      if (!planId || !cycle || !method) {
+        res.status(400).json({ error: { code: 'INVALID_SUBSCRIPTION_REQUEST', message: 'Plan, billing cycle and payment method are required.' } });
+        return;
+      }
+      if (!['MONTHLY', 'YEARLY'].includes(cycle) || !['UPI', 'CASH'].includes(method)) {
+        res.status(400).json({ error: { code: 'INVALID_SUBSCRIPTION_REQUEST', message: 'Invalid billing cycle or payment method.' } });
+        return;
+      }
+      const data = await ownerService.selectSubscription(this.getOwnerId(req), planId, cycle as 'MONTHLY' | 'YEARLY', method as 'UPI' | 'CASH');
+      res.status(200).json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = await ownerService.getDashboardData(this.getOwnerId(req));

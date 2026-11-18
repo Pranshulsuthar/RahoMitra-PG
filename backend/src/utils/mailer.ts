@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
+import nodemailer from 'nodemailer';
 
 export interface SendMailOptions {
   to: string;
@@ -55,9 +56,33 @@ export class ConsoleMailerProvider implements MailerService {
 }
 
 export class SmtpMailerProvider implements MailerService {
+  private readonly transporter = nodemailer.createTransport({
+    host: env.MAIL_HOST,
+    port: env.MAIL_PORT,
+    secure: env.MAIL_PORT === 465,
+    auth: {
+      user: env.MAIL_USER,
+      pass: env.MAIL_PASS,
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+  });
+
   async sendMail(options: SendMailOptions): Promise<void> {
-    logger.info({ to: options.to, subject: options.subject }, 'Sending SMTP email in production');
-    // Production SMTP / Resend integration placeholder using nodemailer or direct SMTP
+    try {
+      await this.transporter.sendMail({
+        from: env.MAIL_FROM,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+      });
+      logger.info({ to: options.to, subject: options.subject }, 'SMTP email sent');
+    } catch (error) {
+      logger.error({ err: error, to: options.to, subject: options.subject }, 'SMTP email delivery failed');
+      throw new Error('Unable to send email. Please verify the mail configuration and try again.');
+    }
   }
 
   async sendOtpEmail(to: string, otp: string): Promise<void> {
@@ -89,7 +114,12 @@ export class SmtpMailerProvider implements MailerService {
   }
 }
 
-let activeMailer: MailerService = new ConsoleMailerProvider();
+const useSmtp =
+  env.NODE_ENV !== 'test' &&
+  !env.MAIL_HOST.includes('example.com') &&
+  !env.MAIL_USER.includes('placeholder');
+
+let activeMailer: MailerService = useSmtp ? new SmtpMailerProvider() : new ConsoleMailerProvider();
 
 export function setMailer(mailer: MailerService): void {
   activeMailer = mailer;

@@ -40,6 +40,7 @@ import type {
   RoomType,
   StaffMember,
 } from '../types/owner'
+import type { PlanRecord, SubscriptionRecord } from '../types/admin'
 import { roomOccupancy } from '../types/owner'
 import { useAuth } from './AuthContext'
 
@@ -68,6 +69,9 @@ interface OwnerStoreValue {
   notifications: OwnerNotification[]
   activities: OwnerActivity[]
   toasts: OwnerToast[]
+  plans: PlanRecord[]
+  subscription: SubscriptionRecord | null
+  refresh: () => Promise<void>
 
   /* property switcher */
   selectedPropertyId: string // 'ALL' | property id
@@ -148,6 +152,8 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<OwnerNotification[]>([])
   const [activities, setActivities] = useState<OwnerActivity[]>([])
   const [toasts, setToasts] = useState<OwnerToast[]>([])
+  const [plans, setPlans] = useState<PlanRecord[]>([])
+  const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('ALL')
 
   const toastId = useRef(0)
@@ -187,6 +193,8 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       setRequests(data.requests)
       setNotifications(data.notifications)
       setActivities(data.activities)
+      setPlans(data.plans || [])
+      setSubscription(data.subscription || null)
     } catch {
       // Graceful fallback to demo data if backend is offline or during initialization
     }
@@ -565,6 +573,9 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       notifications,
       activities,
       toasts,
+      plans,
+      subscription,
+      refresh: loadOwnerData,
       selectedPropertyId,
       selectProperty,
       scopedProperties,
@@ -602,6 +613,9 @@ export function OwnerStoreProvider({ children }: { children: ReactNode }) {
       notifications,
       activities,
       toasts,
+      plans,
+      subscription,
+      loadOwnerData,
       selectedPropertyId,
       selectProperty,
       scopedProperties,
