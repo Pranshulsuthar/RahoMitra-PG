@@ -36,7 +36,7 @@ function OwnerShell() {
       />
       <div
         className="flex min-h-screen flex-col transition-[padding] duration-300 ease-out lg:pl-[var(--sidebar-pad)]"
-        style={{ '--sidebar-pad': collapsed ? '76px' : '264px' } as CSSProperties}
+        style={{ '--sidebar-pad': collapsed ? '72px' : '248px' } as CSSProperties}
       >
         <OwnerTopbar
           collapsed={collapsed}

@@ -141,8 +141,8 @@ export function StudentDashboard() {
 
       {/* ---------------------------------------------- welcome / profile */}
       <section className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
             <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-forest text-2xl font-bold text-ivory ring-4 ring-gold/40 sm:h-20 sm:w-20 sm:text-3xl">
               {initials || 'ST'}
             </span>
@@ -157,7 +157,7 @@ export function StudentDashboard() {
             </div>
           </div>
 
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
+          <dl className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4 2xl:w-auto 2xl:min-w-[580px]">
             {[
               ['Current PG', currentPropertyName],
               ['Room', currentRoomNumber],

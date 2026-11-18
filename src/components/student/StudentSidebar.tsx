@@ -9,6 +9,8 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Receipt,
   Settings,
   UserRound,
@@ -76,8 +78,8 @@ export function StudentSidebar({
     <div
       className={cn(
         'flex h-full flex-col bg-forest text-ivory transition-[width,transform] duration-300 ease-out',
-        'fixed inset-y-0 left-0 z-50 w-[264px] -translate-x-full lg:translate-x-0',
-        collapsed && 'lg:w-[76px]',
+        'fixed inset-y-0 left-0 z-50 w-[248px] -translate-x-full lg:translate-x-0',
+        collapsed && 'lg:w-[72px]',
         mobileOpen && 'translate-x-0',
       )}
     >
@@ -194,15 +196,11 @@ export function StudentSidebar({
           )}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <span
-            className={cn(
-              'h-[18px] w-[18px] shrink-0 text-center leading-[18px] transition-transform duration-300',
-              collapsed && 'rotate-180',
-            )}
-            aria-hidden
-          >
-            «
-          </span>
+          {collapsed ? (
+            <PanelLeftOpen className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          ) : (
+            <PanelLeftClose className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          )}
           <span className={cn(collapsed && 'lg:hidden')}>Collapse</span>
         </button>
         <button
